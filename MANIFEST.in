@@ -7,7 +7,7 @@ include .coveragerc
 include conftest.py
 include development-requirements.txt
 
-include README.md
+include *.md
 
 include tox.ini
 
