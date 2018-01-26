@@ -1,4 +1,3 @@
-import os
 import sys
 
 from exodus.bundling import find_all_library_dependencies
