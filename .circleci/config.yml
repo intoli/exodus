@@ -1,0 +1,37 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/python:3.6.1
+
+    working_directory: ~/exodus
+
+    steps:
+      - checkout
+
+      - restore_cache:
+          keys:
+          - v1-dependencies-{{ arch }}-{{ .Branch }}-{{ checksum "development-requirements.txt" }}
+          - v1-dependencies-
+
+      - run:
+          name: Install Dependencies
+          command: |
+            python3 -m venv .env
+            . .env/bin/activate
+            pip install -r development-requirements.txt
+
+      - save_cache:
+          paths:
+            - ./.env
+          key: v1-dependencies-{{ arch }}-{{ .Branch }}-{{ checksum "development-requirements.txt" }}
+
+      - run:
+          name: Run the tests.
+          command: |
+            . .env/bin/activate
+            tox
+
+      - store_artifacts:
+          path: htmlcov
+          destination: coverage-report
