@@ -2,10 +2,13 @@
 .env
 .tox
 
-# Byte-compiled python.
+# Python stuff.
 *.pyc
 __pycache__
+*.egg-info
+
 
 # Coverage reports.
 .coverage
 .coverage.*
+htmlcov
