@@ -1,8 +1,16 @@
 import os
 import sys
 
+from exodus.bundling import find_all_library_dependencies
 from exodus.bundling import find_direct_library_dependencies
 from exodus.bundling import run_ldd
+
+
+def test_find_all_library_dependencies():
+    all_dependencies = find_all_library_dependencies(sys.executable)
+    direct_dependencies = find_direct_library_dependencies(sys.executable)
+    assert set(direct_dependencies).issubset(all_dependencies), \
+        'The direct dependencies should be a subset of all dependencies.'
 
 
 def test_find_direct_library_dependencies():
