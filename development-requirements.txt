@@ -1,0 +1,10 @@
+bumpversion==0.5.3
+m2r>=0.1.12
+pluggy==0.5.2
+py==1.4.34
+pytest==3.2.3
+pytest-sugar==0.9.0
+pytest-watch==4.1.0
+six==1.11.0
+tox==2.9.1
+virtualenv==15.1.0
