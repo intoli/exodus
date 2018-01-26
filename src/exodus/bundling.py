@@ -19,8 +19,8 @@ def find_all_library_dependencies(binary):
 
 def find_direct_library_dependencies(binary):
     """Finds the libraries that a binary directly links to."""
-    return [match.group(1) for match in filter(None,
-       (re.search('=>\s*([^(]*?)\s*\(', line) for line in run_ldd(binary)))]
+    matches = filter(None, (re.search('=>\s*([^(]*?)\s*\(', line) for line in run_ldd(binary)))
+    return [match.group(1) for match in matches]
 
 
 def run_ldd(binary):
