@@ -1,0 +1,11 @@
+# Virtualenvs.
+.env
+.tox
+
+# Byte-compiled python.
+*.pyc
+__pycache__
+
+# Coverage reports.
+.coverage
+.coverage.*
