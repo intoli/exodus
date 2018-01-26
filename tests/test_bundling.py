@@ -16,10 +16,10 @@ def test_find_direct_library_dependencies():
     dependencies = find_direct_library_dependencies(sys.executable)
     assert all(dependency.startswith('/') for dependency in dependencies), \
         'Dependencies should be absolute paths.'
-    assert any('libpython' in line for line in run_ldd(sys.executable)), \
-        '"libpython" was not found as a direct dependency of the python executable.'
+    assert any('libc.so' in line for line in run_ldd(sys.executable)), \
+        '"libpc" was not found as a direct dependency of the python executable.'
 
 
 def test_run_ldd():
-    assert any('libpython' in line for line in run_ldd(sys.executable)), \
-        '"libpython" was not found in the output of "ldd" for the python executable.'
+    assert any('libc.so' in line for line in run_ldd(sys.executable)), \
+        '"libc" was not found in the output of "ldd" for the python executable.'
