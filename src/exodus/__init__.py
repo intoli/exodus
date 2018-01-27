@@ -4,4 +4,6 @@ import logging
 __version__ = '0.0.1'
 
 root_logger = logging.getLogger(__name__)
-log_formatter = logging.Formatter('%(message)s')
+if root_logger.handlers:
+    for handler in root_logger.handlers:
+        root_logger.removeHandler(handler)

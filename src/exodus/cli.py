@@ -1,6 +1,6 @@
-import logging
-
 import argparse
+import logging
+import sys
 
 from exodus import root_logger
 
@@ -58,12 +58,33 @@ def parse_args(args=None, namespace=None):
     return vars(parser.parse_args(args, namespace))
 
 
+def configure_logging(quiet, verbose):
+    # Set the level.
+    log_level = logging.WARN
+    if quiet:
+        log_level = logging.ERROR
+    if verbose:
+        log_level = logging.INFO
+    root_logger.setLevel(log_level)
+
+    class StdoutFilter(logging.Filter):
+        def filter(self, record):
+            return record.levelno in (logging.DEBUG, logging.INFO)
+
+    stdout_formatter = logging.Formatter('%(message)s')
+    stdout_handler = logging.StreamHandler(sys.stdout)
+    stdout_handler.setFormatter(stdout_formatter)
+    stdout_handler.addFilter(StdoutFilter())
+    root_logger.addHandler(stdout_handler)
+
+    stderr_handler = logging.StreamHandler(sys.stderr)
+    stderr_formatter = logging.Formatter('%(levelname)s: %(message)s')
+    stderr_handler.setFormatter(stderr_formatter)
+    root_logger.addHandler(stderr_handler)
+
+
 def main(args=None, namespace=None):
     args = parse_args(args, namespace)
 
     # Handle the CLI specific options here, removing them from `args` in the process.
-    root_logger.setLevel(logging.WARN)
-    if args.pop('quiet'):
-        root_logger.setLevel(logging.ERROR)
-    if args.pop('verbose'):
-        root_logger.setLevel(logging.INFO)
+    configure_logging(quiet=args.pop('quiet'), verbose=args.pop('verbose'))
