@@ -1,7 +1,8 @@
 import pytest
 
 from exodus.bundling import logger
-from exodus.cli import configure_logging, parse_args
+from exodus.cli import configure_logging
+from exodus.cli import parse_args
 
 
 def test_logging_outputs(capsys):
