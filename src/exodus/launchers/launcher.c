@@ -3,23 +3,23 @@
 #include <string.h>
 #include <unistd.h>
 
-int main( int argc, char *argv[] )  {
-    char *ld_filename = "{{ld_filename}}";
-    char *executable_filename = "{{executable_filename}}";
+int main(int argc, char *argv[])  {
+    char *ld_filename = "{{linker}}";
+    char *executable_filename = "{{binary}}";
 
     char buffer[2048] = { 0 };
-    if (readlink("/proc/self/exe", buffer, sizeof(buffer) - 4 - strlen(ld_filename) - strlen(executable_filename))) {
-       char *root_directory = dirname(buffer);
+    if (readlink("/proc/self/exe", buffer, sizeof(buffer) - 8 - strlen(ld_filename) - strlen(executable_filename))) {
+       char *bin_directory = dirname(buffer);
        char library_directory[2048] = { 0 };
-       strcpy(library_directory, root_directory);
-       strcat(library_directory, "/lib/");
+       strcpy(library_directory, bin_directory);
+       strcat(library_directory, "/../lib/");
 
        char full_ld_path[2048] = { 0 };
        strcpy(full_ld_path, library_directory);
        strcat(full_ld_path, ld_filename);
 
        char full_executable_path[2048] = { 0 };
-       strcpy(full_executable_path, root_directory);
+       strcpy(full_executable_path, bin_directory);
        strcat(full_executable_path, "/");
        strcat(full_executable_path, executable_filename);
 
