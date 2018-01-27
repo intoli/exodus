@@ -1,5 +1,9 @@
 import os
+import shutil
+from subprocess import PIPE
+from subprocess import Popen
 
+from exodus.bundling import create_unpackaged_bundle
 from exodus.bundling import find_all_library_dependencies
 from exodus.bundling import find_direct_library_dependencies
 from exodus.bundling import run_ldd
@@ -10,6 +14,20 @@ parent_directory = os.path.dirname(os.path.realpath(__file__))
 chroot = os.path.join(parent_directory, 'test-binaries', 'chroot')
 ldd = os.path.join(chroot, 'bin', 'ldd')
 executable = os.path.join(chroot, 'bin', 'fizz-buzz')
+
+
+def test_create_unpackaged_bundle():
+    root_directory = create_unpackaged_bundle(rename=[], executables=[executable], ldd=ldd)
+    try:
+        binary_path = os.path.join(root_directory, 'bin', os.path.basename(executable))
+
+        process = Popen([binary_path], stdout=PIPE, stderr=PIPE)
+        stdout, stderr = process.communicate()
+        assert 'FIZZBUZZ' in stdout.decode('utf-8')
+        assert len(stderr.decode('utf-8')) == 0
+    finally:
+        assert root_directory.startswith('/tmp/')
+        shutil.rmtree(root_directory)
 
 
 def test_find_all_library_dependencies():
