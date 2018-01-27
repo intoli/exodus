@@ -17,7 +17,7 @@ def parse_args(args=None, namespace=None):
         'libraries.'
     ))
 
-    parser.add_argument('executable', metavar='EXECUTABLE', nargs='+', help=(
+    parser.add_argument('executables', metavar='EXECUTABLE', nargs='+', help=(
         'One or more ELF executables to include in the exodus bundle.'
     ))
 
