@@ -7,4 +7,3 @@ def test_construct_bash_launcher():
     assert script_content.startswith('#! /bin/bash\n')
     assert linker in script_content
     assert binary in script_content
-    assert False, script_content
