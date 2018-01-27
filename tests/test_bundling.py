@@ -17,6 +17,10 @@ executable = os.path.join(chroot, 'bin', 'fizz-buzz')
 
 
 def test_create_unpackaged_bundle():
+    """This tests that the packaged executable runs as expected. At the very least, this
+    tests that the symbolic links and launcher are functioning correctly. Unfortunately,
+    it doesn't really test the linker overrides unless the required libraries are not
+    present on the current system."""
     root_directory = create_unpackaged_bundle(rename=[], executables=[executable], ldd=ldd)
     try:
         binary_path = os.path.join(root_directory, 'bin', os.path.basename(executable))
