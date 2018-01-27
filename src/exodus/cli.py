@@ -18,10 +18,10 @@ def parse_args(args=None, namespace=None):
         'One or more ELF executables to include in the exodus bundle.'
     ))
 
-    parser.add_argument('-c', '--chroot', metavar='DIRECTORY', default='/', help=(
-        'A directory that will be treated as the system root while resolving dependencies. '
-        'This is primarily useful for bundling either relocated binaries or ones installed '
-        'in a chroot environment.'
+    parser.add_argument('--ldd', metavar='LDD_SCRIPT', default='ldd', help=(
+        'The linker that will be invoked to resolve dependencies. In advanced usage, '
+        'you may want to write your own `ldd` script which invokes the linker with '
+        'custom arguments.'
     ))
 
     parser.add_argument('-o', '--output', metavar='OUTPUT_FILE',
