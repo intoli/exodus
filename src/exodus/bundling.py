@@ -13,17 +13,16 @@ from exodus.launchers import construct_bash_launcher
 logger = logging.getLogger(__name__)
 
 
-def create_bundle(**kwargs):
+def create_bundle(executables, output, tarball=False, rename=[], ldd='ldd'):
     """Handles the creation of the full bundle."""
     try:
-        logger.error('Not yet implemented.')
-        root_directory = create_unpackaged_bundle(**kwargs)
-        logger.info('Keys: %s' % kwargs.keys())
+        root_directory = create_unpackaged_bundle(executables, rename=rename, ldd=ldd)
+        logger.error('Packaging is not yet implemented.')
     finally:
         shutil.rmtree(root_directory)
 
 
-def create_unpackaged_bundle(rename, executables, ldd, **kwargs):
+def create_unpackaged_bundle(executables, rename=[], ldd='ldd'):
     """Creates a temporary directory containing the unpackaged contents of the bundle."""
     root_directory = tempfile.mkdtemp(prefix='exodus-bundle-')
     try:
