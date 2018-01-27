@@ -9,6 +9,12 @@ gcc fizz-buzz.c -m32 -o ./chroot/bin/fizz-buzz
 ```
 
 
+## Linking
+
+There is a script in [./chroot/bin/ldd](./chroot/bin/ldd) that attempts to invoke the linker with library paths set in such a way that the results would be comparable to running in actual chroot.
+The purpose of this is so that these binaries can be transported across systems for testing.
+
+
 ## License
 
 Components of the [GNU C Library (glibc)](https://www.gnu.org/software/libc/) are in included in this subdirectory in a binary form for the purpose of testing dependency resolution.

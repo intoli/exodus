@@ -1,0 +1,7 @@
+#! /bin/sh
+
+# This is sort of a poor man's ldd. It tries to set the libary path sufficiently for the test
+# programs to link in a pseudo-chroot environment.
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+LD_TRACE_LOADED_OBJECTS=1 ${DIR}/../lib/ld-linux.so.2 --library-path "\$ORIGIN/../lib/:\$ORIGIN/../usr/lib32/" --inhibit-rpath "" "$@"
