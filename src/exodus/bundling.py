@@ -15,6 +15,9 @@ from exodus.templating import render_template
 
 logger = logging.getLogger(__name__)
 
+parent_directory = os.path.dirname(os.path.realpath(__file__))
+bundle_installation_template = os.path.join(parent_directory, 'install-bundle.sh')
+
 
 def create_bundle(executables, output, tarball=False, rename=[], ldd='ldd'):
     """Handles the creation of the full bundle."""
@@ -40,6 +43,13 @@ def create_bundle(executables, output, tarball=False, rename=[], ldd='ldd'):
             logger.info('Successfully created a bundle at "%s".' % output_filename)
             return True
 
+        # Construct an installation bundle.
+        shutil.copy(bundle_installation_template, output_filename)
+        shutil.copymode(bundle_installation_template, output_filename)
+        with open(output_filename, 'ab') as f:
+            f.write(stream.getvalue())
+        logger.info('Successfully created a bundle installation script at "%s".' % output_filename)
+        return True
     finally:
         shutil.rmtree(root_directory)
 
