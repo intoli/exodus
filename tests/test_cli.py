@@ -1,7 +1,27 @@
-# from argparse import InvocationError
 import pytest
 
-from exodus.cli import parse_args
+from exodus.bundling import logger
+from exodus.cli import configure_logging, parse_args
+
+
+def test_logging_outputs(capsys):
+    # There should be no output before configuring the logger.
+    logger.error('error')
+    out, err = capsys.readouterr()
+    print(out, err)
+    assert len(out) == len(err) == 0
+
+    # The different levels should be routed separately to stdout/stderr.
+    configure_logging(verbose=True, quiet=False)
+    logger.debug('debug')
+    logger.warn('warn')
+    logger.info('info')
+    logger.error('error')
+    out, err = capsys.readouterr()
+    assert all(output in out for output in ('info'))
+    assert all(output not in out for output in ('debug', 'warn', 'error'))
+    assert all(output in err for output in ('warn', 'error'))
+    assert all(output not in err for output in ('info', 'debug'))
 
 
 def test_required_argument():
