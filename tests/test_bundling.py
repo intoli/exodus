@@ -11,7 +11,7 @@ from exodus.bundling import sha256_hash
 
 
 parent_directory = os.path.dirname(os.path.realpath(__file__))
-chroot = os.path.join(parent_directory, 'test-binaries', 'chroot')
+chroot = os.path.join(parent_directory, 'data', 'binaries', 'chroot')
 ldd = os.path.join(chroot, 'bin', 'ldd')
 executable = os.path.join(chroot, 'bin', 'fizz-buzz')
 
