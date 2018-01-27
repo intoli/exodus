@@ -1,3 +1,4 @@
+import hashlib
 import logging
 import os
 import re
@@ -39,3 +40,8 @@ def run_ldd(ldd, binary):
     process = Popen([ldd, binary], stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
     return stdout.decode('utf-8').split('\n') + stderr.decode('utf-8').split('\n')
+
+
+def sha256_hash(filename):
+    with open(filename, 'rb') as f:
+        return hashlib.sha256(f.read()).hexdigest()

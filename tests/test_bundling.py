@@ -3,6 +3,7 @@ import os
 from exodus.bundling import find_all_library_dependencies
 from exodus.bundling import find_direct_library_dependencies
 from exodus.bundling import run_ldd
+from exodus.bundling import sha256_hash
 
 
 parent_directory = os.path.dirname(os.path.realpath(__file__))
@@ -29,3 +30,9 @@ def test_find_direct_library_dependencies():
 def test_run_ldd():
     assert any('libc.so' in line for line in run_ldd(ldd, executable)), \
         '"libc" was not found in the output of "ldd" for the executable.'
+
+
+def test_sha256_hash():
+    # Found by executing `sha256sum fizz-buzz`.
+    expected_hash = 'd54ab4714215d7822bf490df5cdf49bc3f32b4c85a439b109fc7581355f9d9c5'
+    assert sha256_hash(executable) == expected_hash
