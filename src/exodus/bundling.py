@@ -1,5 +1,4 @@
 import hashlib
-import io
 import logging
 import os
 import re
@@ -129,10 +128,10 @@ def create_unpackaged_bundle(executables, rename=[], ldd='ldd'):
                 with open(launcher_path, 'wb') as f:
                     f.write(launcher_content)
             except CompilerNotFoundError:
-                logger.warn(
+                logger.warn((
                     'Installing either the musl or diet C libraries will result in more efficient '
                     'launchers (currently using bash fallbacks instead).'
-                )
+                ))
                 launcher_path = '%s-launcher.sh' % bundle_executable_path
                 launcher_content = construct_bash_launcher(linker=linker, binary=binary_name)
                 with open(launcher_path, 'w') as f:
