@@ -1,13 +1,16 @@
 import hashlib
+import io
 import logging
 import os
 import re
 import shutil
+import tarfile
 import tempfile
 from subprocess import PIPE
 from subprocess import Popen
 
 from exodus.launchers import construct_bash_launcher
+from exodus.templating import render_template
 
 
 logger = logging.getLogger(__name__)
@@ -16,8 +19,27 @@ logger = logging.getLogger(__name__)
 def create_bundle(executables, output, tarball=False, rename=[], ldd='ldd'):
     """Handles the creation of the full bundle."""
     try:
+        # Create a temporary unpackaged bundle for the executables.
         root_directory = create_unpackaged_bundle(executables, rename=rename, ldd=ldd)
-        logger.error('Packaging is not yet implemented.')
+
+        # Create a gzipped tarball in memory of the bundle.
+        stream = io.BytesIO()
+        with tarfile.open(fileobj=stream, mode='w:gz') as tar:
+            tar.add(root_directory, arcname='exodus')
+
+        # Populate the filename template.
+        output_filename = render_template(output,
+            executables=('-'.join(os.path.basename(executable) for executable in executables)),
+            extension=('tgz' if tarball else 'sh'),
+        )
+
+        # Write this to disk if we're just constructing a tarball and exit.
+        if tarball:
+            with open(output_filename, 'wb') as f:
+                f.write(stream.getvalue())
+            logger.info('Successfully created a bundle at "%s".' % output_filename)
+            return True
+
     finally:
         shutil.rmtree(root_directory)
 
