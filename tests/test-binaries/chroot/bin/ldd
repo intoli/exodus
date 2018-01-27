@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 
 # This is sort of a poor man's ldd. It tries to set the libary path sufficiently for the test
 # programs to link in a pseudo-chroot environment.
