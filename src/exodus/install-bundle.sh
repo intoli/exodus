@@ -24,11 +24,12 @@ mkdir -p ${output_directory} 2> /dev/null
 # Actually perform the extraction.
 begin_tarball_line=$((1 + $(grep --text --line-number '^BEGIN-TARBALL$' $0 | cut -d ':' -f 1)))
 tail -n +$begin_tarball_line "$0" | tar -C "${output_directory}" --strip 1 --preserve-permissions -zvxf -
-if $?; then
+if [ $? -eq 0 ]; then
     echo "Successfully installed, be sure to add "{output_directory}/bin" to your \$PATH."
     exit 0
 else
     echo "Something went wrong, please send an email to contact@intoli.com with details about the bundle."
+    exit 1
 fi
 
 # The tarball data will go here.
