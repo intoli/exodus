@@ -9,7 +9,9 @@ import tempfile
 from subprocess import PIPE
 from subprocess import Popen
 
+from exodus.launchers import CompilerNotFoundError
 from exodus.launchers import construct_bash_launcher
+from exodus.launchers import construct_binary_launcher
 from exodus.templating import render_template
 
 
@@ -117,10 +119,21 @@ def create_unpackaged_bundle(executables, rename=[], ldd='ldd'):
             assert len(linker_candidates) > 0, 'No linker candidates found.'
             assert len(linker_candidates) < 2, 'Multiple linker candidates found.'
             [linker] = linker_candidates
-            launcher_path = '%s-launcher.sh' % bundle_executable_path
-            with open(launcher_path, 'w') as f:
+            # Try a c launcher first and fallback.
+            try:
+                launcher_path = '%s-launcher' % bundle_executable_path
+                launcher_content = construct_binary_launcher(linker=linker, binary=binary_name)
+                with open(launcher_path, 'wb') as f:
+                    f.write(launcher_content)
+            except CompilerNotFoundError:
+                logger.warn(
+                    'Installing either the musl or diet C libraries will result in more efficient '
+                    'launchers (currently using bash fallbacks instead).'
+                )
+                launcher_path = '%s-launcher.sh' % bundle_executable_path
                 launcher_content = construct_bash_launcher(linker=linker, binary=binary_name)
-                f.write(launcher_content)
+                with open(launcher_path, 'w') as f:
+                    f.write(launcher_content)
             shutil.copymode(bundle_executable_path, launcher_path)
             executable_link = os.path.join(bin_directory, binary_name)
             relative_launcher_path = os.path.relpath(launcher_path, bin_directory)
