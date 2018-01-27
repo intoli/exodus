@@ -4,6 +4,7 @@ import logging
 import os
 import re
 import shutil
+import sys
 import tarfile
 import tempfile
 from subprocess import PIPE
@@ -27,33 +28,35 @@ def create_bundle(executables, output, tarball=False, rename=[], ldd='ldd'):
         # Create a temporary unpackaged bundle for the executables.
         root_directory = create_unpackaged_bundle(executables, rename=rename, ldd=ldd)
 
-        # Create a gzipped tarball in memory of the bundle.
-        stream = io.BytesIO()
-        with tarfile.open(fileobj=stream, mode='w:gz') as tar:
-            tar.add(root_directory, arcname='exodus')
-
         # Populate the filename template.
         output_filename = render_template(output,
             executables=('-'.join(os.path.basename(executable) for executable in executables)),
             extension=('tgz' if tarball else 'sh'),
         )
 
-        # Write this to disk if we're just constructing a tarball and exit.
-        if tarball:
-            with open(output_filename, 'wb') as f:
-                f.write(stream.getvalue())
-            logger.info('Successfully created a bundle at "%s".' % output_filename)
-            return True
+        if output_filename == '-':
+            output_file = sys.stdout.buffer
+        else:
+            output_file = open(output_filename, 'wb')
 
-        # Construct an installation bundle.
-        shutil.copy(bundle_installation_template, output_filename)
-        shutil.copymode(bundle_installation_template, output_filename)
-        with open(output_filename, 'ab') as f:
-            f.write(stream.getvalue())
-        logger.info('Successfully created a bundle installation script at "%s".' % output_filename)
+        # Construct the header of the installation script and write it out.
+        if not tarball:
+            with open(bundle_installation_template, 'r') as f:
+                output_file.write(f.read().encode('utf-8'))
+
+        # Write out a gzipped tarball of the bundle
+        with tarfile.open(fileobj=output_file, mode='w:gz') as tar:
+            tar.add(root_directory, arcname='exodus')
+
+        # Write out the success message.
+        logger.info('Successfully created "%s".' % output_filename)
         return True
     finally:
         shutil.rmtree(root_directory)
+        if output_filename == '-':
+            output_file.close()
+        else:
+            shutil.copymode(bundle_installation_template, output_filename)
 
 
 def create_unpackaged_bundle(executables, rename=[], ldd='ldd'):

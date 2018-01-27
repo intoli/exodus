@@ -93,7 +93,9 @@ def main(args=None, namespace=None):
     args = parse_args(args, namespace)
 
     # Handle the CLI specific options here, removing them from `args` in the process.
-    configure_logging(quiet=args.pop('quiet'), verbose=args.pop('verbose'))
+    quiet, verbose = args.pop('quiet'), args.pop('verbose')
+    if args['output'] != '-':
+        configure_logging(quiet=quiet, verbose=verbose)
 
     # Create the bundle with all of the arguments.
     create_bundle(**args)
