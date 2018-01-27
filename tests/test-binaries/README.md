@@ -2,16 +2,16 @@
 
 This is where small test programs and their dependencies can be places for use in tests.
 The `chroot/` subdirectory should be treated as the root directory for placement of any runtime dependencies.
-Currently, the only test is `fizz-buzz` which can be compiled with `musl` by running:
+Currently, the only test is `fizz-buzz` which can be compiled with `gcc` by running:
 
 ```bash
-musl-gcc fizz-buzz.c -o ./chroot/bin/fizz-buzz
+gcc fizz-buzz.c -m32 -o ./chroot/bin/fizz-buzz
 ```
 
 
 ## License
 
-Components of the `musl` c libraries are in included in this subdirectory in a binary form for the purpose of testing dependency resolution.
-These are licensed under an MIT license.
-The most recent version of this license and author list can be found [in their git repository for the project](http://git.musl-libc.org/cgit/musl/tree/COPYRIGHT).
-Additionally, a copy has been duplicated in this directory in [MUSL-COPYRIGHT](./MUSL-COPYRIGHT).
+Components of the [GNU C Library (glibc)](https://www.gnu.org/software/libc/) are in included in this subdirectory in a binary form for the purpose of testing dependency resolution.
+These are licensed under a mixture of licenses.
+The most recent version of the licenses can be found [in the git repository for the project](https://sourceware.org/git/?p=glibc.git;a=blob_plain;f=LICENSES;hb=HEAD).
+Additionally, a copy has been duplicated in this directory in [GLIBC-LICENSES](./GLIBC-LICENSES).
