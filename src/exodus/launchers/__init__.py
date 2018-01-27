@@ -20,10 +20,10 @@ class CompilerNotFoundError(Exception):
 
 def compile(code):
     try:
-        return compile_musl()
+        return compile_musl(code)
     except CompilerNotFoundError:
         try:
-            return compile_diet()
+            return compile_diet(code)
         except CompilerNotFoundError:
             raise CompilerNotFoundError('No suiteable C compiler was found.')
 
