@@ -10,6 +10,10 @@ def test_required_argument():
     parse_args(['/bin/bash'])
 
 
+def test_return_type_is_dict():
+    assert type(parse_args(['/bin/bash'])) == dict
+
+
 def test_quiet_and_verbose_flags():
     result = parse_args(['--quiet', '/bin/bash'])
     assert result['quiet'] and not result['verbose']
