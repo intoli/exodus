@@ -1,0 +1,2 @@
+This is a file template.
+We need to subsitute words in here.
