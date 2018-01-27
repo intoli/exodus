@@ -61,9 +61,9 @@ def parse_args(args=None, namespace=None):
 def configure_logging(quiet, verbose):
     # Set the level.
     log_level = logging.WARN
-    if quiet:
+    if quiet and not verbose:
         log_level = logging.ERROR
-    if verbose:
+    elif verbose and not quiet:
         log_level = logging.INFO
     root_logger.setLevel(log_level)
 
