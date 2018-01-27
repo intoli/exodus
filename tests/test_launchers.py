@@ -33,7 +33,7 @@ def test_compile(compiler):
     try:
         content = compile(code)
     except CompilerNotFoundError:
-        # We'll that's a bummer, but better to test these when the are available that
+        # We'll that's a bummer, but better to test these when the are available than
         # to not test them at all.
         return
 
