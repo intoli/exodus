@@ -67,6 +67,16 @@ def configure_logging(quiet, verbose):
         log_level = logging.INFO
     root_logger.setLevel(log_level)
 
+    class StderrFilter(logging.Filter):
+        def filter(self, record):
+            return record.levelno in (logging.WARN, logging.ERROR)
+
+    stderr_handler = logging.StreamHandler(sys.stderr)
+    stderr_formatter = logging.Formatter('%(levelname)s: %(message)s')
+    stderr_handler.setFormatter(stderr_formatter)
+    stderr_handler.addFilter(StderrFilter())
+    root_logger.addHandler(stderr_handler)
+
     class StdoutFilter(logging.Filter):
         def filter(self, record):
             return record.levelno in (logging.DEBUG, logging.INFO)
@@ -76,11 +86,6 @@ def configure_logging(quiet, verbose):
     stdout_handler.setFormatter(stdout_formatter)
     stdout_handler.addFilter(StdoutFilter())
     root_logger.addHandler(stdout_handler)
-
-    stderr_handler = logging.StreamHandler(sys.stderr)
-    stderr_formatter = logging.Formatter('%(levelname)s: %(message)s')
-    stderr_handler.setFormatter(stderr_formatter)
-    root_logger.addHandler(stderr_handler)
 
 
 def main(args=None, namespace=None):
