@@ -8,6 +8,11 @@ from subprocess import Popen
 logger = logging.getLogger(__name__)
 
 
+def create_bundle(**kwargs):
+    logger.error('Not yet implemented.')
+    logger.info('Keys: %s' % kwargs.keys())
+
+
 def find_all_library_dependencies(ldd, binary):
     """Finds all libraries that a binary directly or indirectly links to."""
     all_dependencies = set()
