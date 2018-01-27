@@ -1,6 +1,8 @@
-from __future__ import print_function
+import logging
 
 import argparse
+
+from exodus import root_logger
 
 
 def parse_args(args=None, namespace=None):
@@ -56,5 +58,12 @@ def parse_args(args=None, namespace=None):
     return vars(parser.parse_args(args, namespace))
 
 
-def main():
-    print('This is where the application goes.')
+def main(args=None, namespace=None):
+    args = parse_args(args, namespace)
+
+    # Handle the CLI specific options here, removing them from `args` in the process.
+    root_logger.setLevel(logging.WARN)
+    if args.pop('quiet'):
+        root_logger.setLevel(logging.ERROR)
+    if args.pop('verbose'):
+        root_logger.setLevel(logging.INFO)

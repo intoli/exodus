@@ -1,7 +1,11 @@
+import logging
 import os
 import re
 from subprocess import PIPE
 from subprocess import Popen
+
+
+logger = logging.getLogger(__name__)
 
 
 def find_all_library_dependencies(ldd, binary):
