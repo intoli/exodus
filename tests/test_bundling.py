@@ -6,6 +6,7 @@ from subprocess import Popen
 from exodus.bundling import create_unpackaged_bundle
 from exodus.bundling import find_all_library_dependencies
 from exodus.bundling import find_direct_library_dependencies
+from exodus.bundling import resolve_binary
 from exodus.bundling import run_ldd
 from exodus.bundling import sha256_hash
 
@@ -48,6 +49,19 @@ def test_find_direct_library_dependencies():
         'Dependencies should be absolute paths.'
     assert any('libc.so' in line for line in run_ldd(ldd, executable)), \
         '"libc" was not found as a direct dependency of the executable.'
+
+
+def test_resolve_binary():
+    binary_directory = os.path.dirname(executable)
+    binary = os.path.basename(executable)
+    old_path = os.getenv('PATH', '')
+    try:
+        os.environ['PATH'] = '%s%s%s' % (binary_directory, os.pathsep, old_path)
+        resolved_binary = resolve_binary(binary)
+        assert resolved_binary == os.path.normpath(executable), \
+            'The full binary path was not resolved correctly.'
+    finally:
+        os.environ['PATH'] = old_path
 
 
 def test_run_ldd():
