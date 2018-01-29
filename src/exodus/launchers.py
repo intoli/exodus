@@ -9,11 +9,6 @@ from subprocess import Popen
 from exodus.templating import render_template_file
 
 
-parent_directory = os.path.dirname(os.path.realpath(__file__))
-bash_launcher_filename = os.path.join(parent_directory, 'launcher.sh')
-c_launcher_filename = os.path.join(parent_directory, 'launcher.c')
-
-
 class CompilerNotFoundError(Exception):
     pass
 
@@ -66,9 +61,9 @@ def compile_musl(code):
 
 
 def construct_bash_launcher(linker, binary):
-    return render_template_file(bash_launcher_filename, linker=linker, binary=binary)
+    return render_template_file('launcher.sh', linker=linker, binary=binary)
 
 
 def construct_binary_launcher(linker, binary):
-    code = render_template_file(c_launcher_filename, linker=linker, binary=binary)
+    code = render_template_file('launcher.c', linker=linker, binary=binary)
     return compile(code)

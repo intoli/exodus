@@ -3,6 +3,7 @@ import logging
 import os
 import re
 import shutil
+import stat
 import sys
 import tarfile
 import tempfile
@@ -13,12 +14,10 @@ from exodus.launchers import CompilerNotFoundError
 from exodus.launchers import construct_bash_launcher
 from exodus.launchers import construct_binary_launcher
 from exodus.templating import render_template
+from exodus.templating import render_template_file
 
 
 logger = logging.getLogger(__name__)
-
-parent_directory = os.path.dirname(os.path.realpath(__file__))
-bundle_installation_template = os.path.join(parent_directory, 'install-bundle.sh')
 
 
 def create_bundle(executables, output, tarball=False, rename=[], ldd='ldd'):
@@ -40,8 +39,7 @@ def create_bundle(executables, output, tarball=False, rename=[], ldd='ldd'):
 
         # Construct the header of the installation script and write it out.
         if not tarball:
-            with open(bundle_installation_template, 'r') as f:
-                output_file.write(f.read().encode('utf-8'))
+            output_file.write(render_template_file('install-bundle.sh').encode('utf-8'))
 
         # Write out a gzipped tarball of the bundle
         with tarfile.open(fileobj=output_file, mode='w:gz') as tar:
@@ -55,7 +53,8 @@ def create_bundle(executables, output, tarball=False, rename=[], ldd='ldd'):
         if output_filename == '-':
             output_file.close()
         else:
-            shutil.copymode(bundle_installation_template, output_filename)
+            st = os.stat(output_filename)
+            os.chmod(output_filename, st.st_mode | stat.S_IEXEC)
 
 
 def create_unpackaged_bundle(executables, rename=[], ldd='ldd'):
