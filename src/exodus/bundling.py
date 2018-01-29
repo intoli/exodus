@@ -24,7 +24,10 @@ logger = logging.getLogger(__name__)
 
 def create_bundle(executables, output, tarball=False, rename=[], ldd='ldd'):
     """Handles the creation of the full bundle."""
+    # Initialize these ahead of time so they're always available for error handling.
+    output_filename, output_file, root_directory = None, None, None
     try:
+
         # Create a temporary unpackaged bundle for the executables.
         root_directory = create_unpackaged_bundle(executables, rename=rename, ldd=ldd)
 
@@ -62,13 +65,17 @@ def create_bundle(executables, output, tarball=False, rename=[], ldd='ldd'):
         # Write out the success message.
         logger.info('Successfully created "%s".' % output_filename)
         return True
+    except:  # noqa: E722
+        raise
     finally:
-        shutil.rmtree(root_directory)
-        if output_filename == '-':
-            output_file.close()
-        else:
-            st = os.stat(output_filename)
-            os.chmod(output_filename, st.st_mode | stat.S_IEXEC)
+        if root_directory:
+            shutil.rmtree(root_directory)
+        if output_file and output_filename:
+            if output_filename == '-':
+                output_file.close()
+            else:
+                st = os.stat(output_filename)
+                os.chmod(output_filename, st.st_mode | stat.S_IEXEC)
 
 
 def create_unpackaged_bundle(executables, rename=[], ldd='ldd'):
@@ -154,8 +161,11 @@ def create_unpackaged_bundle(executables, rename=[], ldd='ldd'):
             executable_link = os.path.join(bin_directory, binary_name)
             relative_launcher_path = os.path.relpath(launcher_path, bin_directory)
             os.symlink(relative_launcher_path, executable_link)
-    finally:
+
         return root_directory
+    except:  # noqa: E722
+        shutil.rmtree(root_directory)
+        raise
 
 
 def find_all_library_dependencies(ldd, binary):
