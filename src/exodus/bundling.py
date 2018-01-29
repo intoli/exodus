@@ -91,7 +91,8 @@ def create_unpackaged_bundle(executables, rename=[], ldd='ldd'):
         for name, executable in zip(rename, executables):
             # Make the bundle sundirectories for this executable.
             binary_name = (name or os.path.basename(executable)).replace(os.sep, '')
-            bundle_directory = os.path.join(bundles_directory, binary_name)
+            binary_hash = sha256_hash(executable)
+            bundle_directory = os.path.join(bundles_directory, binary_hash)
             bundle_bin_directory = os.path.join(bundle_directory, 'bin')
             os.makedirs(bundle_bin_directory)
             bundle_lib_directory = os.path.join(bundle_directory, 'lib')
