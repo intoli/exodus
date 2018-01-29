@@ -190,7 +190,7 @@ def find_direct_library_dependencies(ldd, binary):
 def resolve_binary(binary):
     """Attempts to find the absolute path to the binary."""
     if not os.path.exists(binary):
-        for path in os.environ['PATH'].split(os.pathsep):
+        for path in os.getenv('PATH', '').split(os.pathsep):
             absolute_binary_path = os.path.join(path, binary)
             if os.path.exists(absolute_binary_path):
                 binary = absolute_binary_path
