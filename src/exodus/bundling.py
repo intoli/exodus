@@ -1,4 +1,6 @@
+import base64
 import hashlib
+import io
 import logging
 import os
 import re
@@ -32,18 +34,30 @@ def create_bundle(executables, output, tarball=False, rename=[], ldd='ldd'):
             extension=('tgz' if tarball else 'sh'),
         )
 
+        # Store a gzipped tarball of the bundle in memory.
+        tar_stream = io.BytesIO()
+        with tarfile.open(fileobj=tar_stream, mode='w:gz') as tar:
+            tar.add(root_directory, arcname='exodus')
+
+        # Configure the appropriate output mechanism.
         if output_filename == '-':
             output_file = sys.stdout.buffer
         else:
             output_file = open(output_filename, 'wb')
 
-        # Construct the header of the installation script and write it out.
+        # Construct the installation script and write it out.
         if not tarball:
-            output_file.write(render_template_file('install-bundle.sh').encode('utf-8'))
-
-        # Write out a gzipped tarball of the bundle
-        with tarfile.open(fileobj=output_file, mode='w:gz') as tar:
-            tar.add(root_directory, arcname='exodus')
+            if output_filename == '-':
+                base64_encoded_tarball = base64.b64encode(tar_stream.getvalue()).decode('utf-8')
+                script_content = render_template_file('install-bundle-noninteractive.sh',
+                    base64_encoded_tarball=base64_encoded_tarball)
+                output_file.write(script_content.encode('utf-8'))
+            else:
+                output_file.write(render_template_file('install-bundle.sh').encode('utf-8'))
+                output_file.write(tar_stream.getvalue())
+        else:
+            # Or just write out the tarball.
+            output_file.write(tar_stream.getvalue())
 
         # Write out the success message.
         logger.info('Successfully created "%s".' % output_filename)
