@@ -95,7 +95,7 @@ def create_unpackaged_bundle(executables, rename=[], ldd='ldd'):
             'More renamed options were included than executables.'
         # Pad the rename's so that they have the same length for the `zip()` call.
         rename = rename + [None for i in range(len(executables) - len(rename))]
-        for name, executable in zip(rename, executables):
+        for name, executable in zip(rename, map(resolve_binary, executables)):
             # Make the bundle sundirectories for this executable.
             binary_name = (name or os.path.basename(executable)).replace(os.sep, '')
             binary_hash = sha256_hash(executable)
@@ -185,6 +185,16 @@ def find_direct_library_dependencies(ldd, binary):
     """Finds the libraries that a binary directly links to."""
     matches = filter(None, (re.search('=>\s*([^(]*?)\s*\(', line) for line in run_ldd(ldd, binary)))
     return [match.group(1) for match in matches]
+
+
+def resolve_binary(binary):
+    """Attempts to find the absolute path to the binary."""
+    if not os.path.exists(binary):
+        for path in os.environ['PATH'].split(os.pathsep):
+            absolute_binary_path = os.path.join(path, binary)
+            if os.path.exists(absolute_binary_path):
+                binary = absolute_binary_path
+    return binary
 
 
 def run_ldd(ldd, binary):
