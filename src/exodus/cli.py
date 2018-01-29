@@ -28,11 +28,12 @@ def parse_args(args=None, namespace=None):
     ))
 
     parser.add_argument('-o', '--output', metavar='OUTPUT_FILE',
-        default='./exodus-{{executables}}-bundle.{{extension}}',
+        default=None,
         help=(
             'The file where the bundle will be written out to. The extension depends on the '
             'output type. The "{{executables}}" and "{{extension}}" template strings can be '
-            ' used in the provided filename.'
+            ' used in the provided filename. If ommited, the output will go to stdout when '
+            'it is being piped, or to "./exodus-{{executables}}-bundle.{{extension}}" otherwise.'
         ),
     )
 
@@ -96,6 +97,13 @@ def main(args=None, namespace=None):
     quiet, verbose = args.pop('quiet'), args.pop('verbose')
     if args['output'] != '-':
         configure_logging(quiet=quiet, verbose=verbose)
+
+    # Dynamically set the default output to stdout if it is being piped.
+    if args['output'] is None:
+        if sys.stdout.isatty():
+            args['output'] = './exodus-{{executables}}-bundle.{{extension}}'
+        else:
+            args['output'] = '-'
 
     # Create the bundle with all of the arguments.
     create_bundle(**args)
