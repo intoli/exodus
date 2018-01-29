@@ -6,10 +6,10 @@ from subprocess import Popen
 
 import pytest
 
-from exodus.launchers import CompilerNotFoundError
-from exodus.launchers import compile_diet
-from exodus.launchers import compile_musl
-from exodus.launchers import construct_bash_launcher
+from exodus_bundler.launchers import CompilerNotFoundError
+from exodus_bundler.launchers import compile_diet
+from exodus_bundler.launchers import compile_musl
+from exodus_bundler.launchers import construct_bash_launcher
 
 
 parent_directory = os.path.dirname(os.path.realpath(__file__))

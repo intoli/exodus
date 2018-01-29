@@ -12,11 +12,11 @@ import tempfile
 from subprocess import PIPE
 from subprocess import Popen
 
-from exodus.launchers import CompilerNotFoundError
-from exodus.launchers import construct_bash_launcher
-from exodus.launchers import construct_binary_launcher
-from exodus.templating import render_template
-from exodus.templating import render_template_file
+from exodus_bundler.launchers import CompilerNotFoundError
+from exodus_bundler.launchers import construct_bash_launcher
+from exodus_bundler.launchers import construct_binary_launcher
+from exodus_bundler.templating import render_template
+from exodus_bundler.templating import render_template_file
 
 
 logger = logging.getLogger(__name__)

@@ -3,12 +3,12 @@ import shutil
 from subprocess import PIPE
 from subprocess import Popen
 
-from exodus.bundling import create_unpackaged_bundle
-from exodus.bundling import find_all_library_dependencies
-from exodus.bundling import find_direct_library_dependencies
-from exodus.bundling import resolve_binary
-from exodus.bundling import run_ldd
-from exodus.bundling import sha256_hash
+from exodus_bundler.bundling import create_unpackaged_bundle
+from exodus_bundler.bundling import find_all_library_dependencies
+from exodus_bundler.bundling import find_direct_library_dependencies
+from exodus_bundler.bundling import resolve_binary
+from exodus_bundler.bundling import run_ldd
+from exodus_bundler.bundling import sha256_hash
 
 
 parent_directory = os.path.dirname(os.path.realpath(__file__))

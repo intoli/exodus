@@ -1,7 +1,7 @@
 import os
 
-from exodus.templating import render_template
-from exodus.templating import render_template_file
+from exodus_bundler.templating import render_template
+from exodus_bundler.templating import render_template_file
 
 
 parent_directory = os.path.dirname(os.path.realpath(__file__))

@@ -6,7 +6,7 @@ from distutils.spawn import find_executable
 from subprocess import PIPE
 from subprocess import Popen
 
-from exodus.templating import render_template_file
+from exodus_bundler.templating import render_template_file
 
 
 class CompilerNotFoundError(Exception):

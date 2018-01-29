@@ -2,8 +2,8 @@ import argparse
 import logging
 import sys
 
-from exodus import root_logger
-from exodus.bundling import create_bundle
+from exodus_bundler import root_logger
+from exodus_bundler.bundling import create_bundle
 
 
 def parse_args(args=None, namespace=None):

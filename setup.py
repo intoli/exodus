@@ -12,7 +12,7 @@ from setuptools import setup
 
 
 setup(
-    name='exodus',
+    name='exodus_bundler',
     version='0.0.1',
     license=None,
     description='The exodus application bundler.',
@@ -45,7 +45,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'exodus = exodus.cli:main',
+            'exodus = exodus_bundler.cli:main',
         ],
     },
 )
