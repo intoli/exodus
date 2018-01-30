@@ -26,6 +26,9 @@
 </p>
 
 
+![Demonstration of usage with htop](media/htop-demo.gif)
+
+
 ## Installation
 
 The package can be installed from [the package on pypi](https://pypi.python.org/pypi/exodus_bundler).
