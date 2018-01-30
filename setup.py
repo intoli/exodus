@@ -12,7 +12,7 @@ from setuptools import setup
 
 
 setup(
-    name='exodus_bundler',
+    name='exodus-bundler',
     version='0.0.1',
     license=None,
     description='The exodus application bundler.',
