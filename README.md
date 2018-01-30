@@ -1,5 +1,18 @@
 # Exodus
 
+<p align="left">
+    <a href="https://circleci.com/gh/Intoli/exodus/tree/master">
+        <img src="https://img.shields.io/circleci/project/github/Intoli/exodus/master.svg"
+            alt="Build Status"></a>
+    <a href="https://github.com/Intoli/exodus/blob/master/LICENSE.md">
+        <img src="https://img.shields.io/pypi/l/exodus-bundler.svg"
+            alt="License"></a>
+    <a href="https://pypi.python.org/pypi/exodus-bundler/">
+        <img src="https://img.shields.io/pypi/v/exodus-bundler.svg"
+            alt="PyPI Version"></a>
+</p>
+
+
 ## Installation
 
 The package can be installed from [the package on pypi](https://pypi.python.org/pypi/exodus_bundler).
