@@ -1,12 +1,12 @@
 [paths]
 source =
-   src/exodus
-   */site-packages/exodus
+   src/exodus_bundler
+   */site-packages/exodus_bundler
 
 [run]
 branch = true
 source =
-    exodus
+    exodus_bundler
     tests
 parallel = true
 
