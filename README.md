@@ -13,6 +13,9 @@
     <a href="https://pypi.python.org/pypi/exodus-bundler/">
         <img src="https://img.shields.io/pypi/v/exodus-bundler.svg"
             alt="PyPI Version"></a>
+    <a href="https://twitter.com/home?status=Exodus%20makes%20it%20possible%20to%20transport%20binaries%20between%20Linux%20machines%20without%20needing%20to%20worry%20about%20dependencies%20or%20library%20incompatibilities.%20Very%20cool!%0A%0Ahttps%3A//github.com/intoli/exodus" target="_blank">
+        <img src="https://img.shields.io/twitter/url/http/shields.io.svg?style=social"
+            alt="Tweet"></a>
 </p>
 
 
