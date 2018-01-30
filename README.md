@@ -90,7 +90,7 @@ To create a tarball, copy it to a remote server, and then extract it in `~/custo
 # Create the tarball.
 exodus --tarball aria2c --output aria2c.tgz
 
-# Copy it to the remove server and remove it locally.
+# Copy it to the remote server and remove it locally.
 scp aria2c.tgz intoli.com:/tmp/aria2c.tgz
 rm aria2c.tgz
 
