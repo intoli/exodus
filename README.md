@@ -26,7 +26,58 @@
 </p>
 
 
+Exodus is a tool that makes it easy to successfully relocate Linux ELF binaries from one system to another.
+This is useful in situations where you don't have root access on a machine or where a package simply isn't available for a given Linux distribution.
+For example, CentOS 6.X and Amazon Linux don't have packages for [Google Chrome](https://www.google.com/chrome/browser/desktop/index.html) or [aria2](https://aria2.github.io/).
+Server-oriented distributions tend to have more limited and outdated packages available, so it's fairly common that one might wish to install a piece of software that they already have installed on their own desktop or laptop.
+
+With exodus, transferring a piece of software that's working on one computer to another is as simple as this.
+
+```bash
+exodus aria2c | ssh intoli.com
+```
+
+Exodus handles bundling all of the binary's dependencies, compiling a statically linked wrapper for the executable that invokes the relocated linker directly, and installing the bundle in `~/.exodus/` on the remote machine.
+You can see it in action here.
+
 ![Demonstration of usage with htop](media/htop-demo.gif)
+
+
+## The Problem Being Solved
+
+If you simply copy an executable file from one system to another, then you're very likely going to run into problems.
+Most binaries available on Linux are dynamically linked and depend on a number of external library files.
+You'll get an error like this when running a relocated binary when it has a missing dependency.
+
+```
+aria2c: error while loading shared libraries: libgnutls.so.30: cannot open shared object file: No such file or directory
+```
+
+You can try to install these libraries manually, or to relocate them and manually set `LD_LIBRARY_PATH`, but it turns out that the locations of the [ld-linux](https://linux.die.net/man/8/ld-linux) linker and the [glibc](https://www.gnu.org/software/libc/) libraries are hardcoded.
+Things can very quickly turn into a mess of relocation errors,
+
+```
+aria2c: relocation error: /lib/libpthread.so.0: symbol __getrlimit, version
+GLIBC_PRIVATE not defined in file libc.so.6 with link time reference
+```
+
+segmentation faults,
+
+```
+Segmentation fault (core dumped)
+```
+
+or, if you're really unlucky, this symptom of a missing linker.
+
+```
+$ ./aria2c
+bash: ./aria2c: No such file or directory
+$ ls -lha ./aria2c
+-rwxr-xr-x 1 sangaline sangaline 2.8M Jan 30 21:18 ./aria2c
+```
+
+Exodus works around these issues by compiling a small statically linked launcher binary that invokes the relocated linker directly with any hardcoded `RPATH` library paths overridden.
+The relocated binary will run with the exact same linker and libraries that it ran with on its origin machine.
 
 
 ## Installation
@@ -207,3 +258,4 @@ tox
 ## Contributing
 
 Contributions are welcome, but please create an issue on [the issue tracker](https://github.com/intoli/exodus/issues/new) first to discuss the contribution first.
+New feature additions should include tests and it's a requirement that all tests must pass before pull requests are merged.
