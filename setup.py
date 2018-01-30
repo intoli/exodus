@@ -13,7 +13,7 @@ from setuptools import setup
 
 setup(
     name='exodus-bundler',
-    version='0.0.1',
+    version='0.0.2',
     license='BSD',
     platforms=['Linux'],
     description='The exodus application bundler.',
