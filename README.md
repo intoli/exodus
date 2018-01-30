@@ -13,9 +13,15 @@
     <a href="https://pypi.python.org/pypi/exodus-bundler/">
         <img src="https://img.shields.io/pypi/v/exodus-bundler.svg"
             alt="PyPI Version"></a>
-    <a href="https://twitter.com/home?status=Exodus%20makes%20it%20possible%20to%20transport%20binaries%20between%20Linux%20machines%20without%20needing%20to%20worry%20about%20dependencies%20or%20library%20incompatibilities.%20Very%20cool!%0A%0Ahttps%3A//github.com/intoli/exodus" target="_blank">
-        <img src="https://img.shields.io/twitter/url/http/shields.io.svg?style=social"
+    <a targe="_blank" href="https://twitter.com/home?status=Exodus%20makes%20it%20possible%20to%20transport%20binaries%20between%20Linux%20machines%20without%20needing%20to%20worry%20about%20dependencies%20or%20library%20incompatibilities.%20Very%20cool!%0A%0Ahttps%3A//github.com/intoli/exodus">
+        <img height="22px" src="https://simplesharebuttons.com/images/somacro/twitter.png"
             alt="Tweet"></a>
+    <a target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=https%3A//github.com/intoli/exodus">
+        <img height="22px" src="https://simplesharebuttons.com/images/somacro/facebook.png"
+            alt="Share on Facebook"></a>
+    <a target="_blank" href="http://reddit.com/submit?url=https%3A%2F%2Fgithub.com%2Fintoli%2Fexodus&title=Exodus%20-%20Painless%20relocation%20of%20ELF%20binaries%20on%20Linux">
+        <img height="22px" src="https://simplesharebuttons.com/images/somacro/reddit.png"
+            alt="Share on Reddit"></a>
 </p>
 
 
