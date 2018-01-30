@@ -1,3 +1,4 @@
+graft media
 graft src
 graft tests
 graft .circleci
