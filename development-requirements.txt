@@ -7,4 +7,5 @@ pytest-sugar==0.9.0
 pytest-watch==4.1.0
 six==1.11.0
 tox==2.9.1
+twine==1.9.1
 virtualenv==15.1.0
