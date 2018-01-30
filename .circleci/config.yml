@@ -1,11 +1,13 @@
+defaults: &defaults
+  working_directory: ~/exodus
+  docker:
+    - image: circleci/python:3.6.1
+
+
 version: 2
 jobs:
   build:
-    docker:
-      - image: circleci/python:3.6.1
-
-    working_directory: ~/exodus
-
+    <<: *defaults
     steps:
       - checkout
 
@@ -32,6 +34,55 @@ jobs:
             . .env/bin/activate
             tox
 
+      - run:
+          name: Build the package.
+          command: |
+            python setup.py sdist bdist_wheel
+
       - store_artifacts:
           path: htmlcov
           destination: coverage-report
+
+      - persist_to_workspace:
+          root: ~/exodus
+          paths:
+            - .env
+            - dist
+
+  deploy:
+    <<: *defaults
+    steps:
+      - attach_workspace:
+          at: ~/exodus
+      - run:
+          name: Upload package to PyPI.
+          command: |
+            twine upload --skip-existing dist/*
+
+
+workflows:
+  version: 2
+
+  build:
+    jobs:
+      - build:
+          filters:
+            tags:
+              ignore: /v[0-9]+(\.[0-9]+)*/
+
+  release:
+    jobs:
+      - build:
+          filters:
+            tags:
+              only: /v[0-9]+(\.[0-9]+)*/
+            branches:
+              ignore: /.*/
+      - deploy:
+          filters:
+            tags:
+              only: /v[0-9]+(\.[0-9]+)*/
+            branches:
+              ignore: /.*/
+          requires:
+            - build
