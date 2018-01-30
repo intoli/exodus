@@ -57,6 +57,7 @@ jobs:
       - run:
           name: Upload package to PyPI.
           command: |
+            . .env/bin/activate
             twine upload --skip-existing dist/*
 
 
