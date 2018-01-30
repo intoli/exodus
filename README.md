@@ -98,6 +98,10 @@ export PATH="~/.local/bin/:${PATH}"
 
 to your `~/.bashrc` file.
 
+It is also highly recommended that you install [gcc](https://gcc.gnu.org/) and one of either [musl libc](https://www.musl-libc.org/) or [diet libc](https://www.fefe.de/dietlibc/) on the machine where you'll be packaging binaries.
+If present, these small C libries will be used to compile small statically linked launchers for the bundled applications.
+An equivalent shell script will be used as a fallback, but it carries significant overhead compared to the compiled launchers.
+
 
 ## Usage
 
