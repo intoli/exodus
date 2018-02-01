@@ -8,6 +8,9 @@
     <a target="_blank" href="http://reddit.com/submit?url=https%3A%2F%2Fgithub.com%2Fintoli%2Fexodus&title=Exodus%20-%20Painless%20relocation%20of%20ELF%20binaries%20on%20Linux">
         <img height="26px" src="https://simplesharebuttons.com/images/somacro/reddit.png"
             alt="Share on Reddit"></a>
+    <a target="_blank" href="https://news.ycombinator.com/submitlink?u=https://github.com/intoli/exodus&t=Exodus%20%E2%80%93%20Painless%20relocation%20of%20Linux%20binaries%20without%20containers">
+        <img height="26px" src="media/ycombinator.png"
+            alt="Share on Hacker News"></a>
 </h1>
 
 <p align="left">
