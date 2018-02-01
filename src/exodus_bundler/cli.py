@@ -60,7 +60,7 @@ def parse_args(args=None, namespace=None):
     return vars(parser.parse_args(args, namespace))
 
 
-def configure_logging(quiet, verbose):
+def configure_logging(quiet, verbose, suppress_stdout=False):
     # Set the level.
     log_level = logging.WARN
     if quiet and not verbose:
@@ -79,6 +79,10 @@ def configure_logging(quiet, verbose):
     stderr_handler.addFilter(StderrFilter())
     root_logger.addHandler(stderr_handler)
 
+    # We won't even configure/add the stdout handler if this is specified.
+    if suppress_stdout:
+        return
+
     class StdoutFilter(logging.Filter):
         def filter(self, record):
             return record.levelno in (logging.DEBUG, logging.INFO)
@@ -93,17 +97,17 @@ def configure_logging(quiet, verbose):
 def main(args=None, namespace=None):
     args = parse_args(args, namespace)
 
-    # Handle the CLI specific options here, removing them from `args` in the process.
-    quiet, verbose = args.pop('quiet'), args.pop('verbose')
-    if args['output'] != '-':
-        configure_logging(quiet=quiet, verbose=verbose)
-
     # Dynamically set the default output to stdout if it is being piped.
     if args['output'] is None:
         if sys.stdout.isatty():
             args['output'] = './exodus-{{executables}}-bundle.{{extension}}'
         else:
             args['output'] = '-'
+
+    # Handle the CLI specific options here, removing them from `args` in the process.
+    quiet, verbose = args.pop('quiet'), args.pop('verbose')
+    suppress_stdout = args['output'] == '-'
+    configure_logging(quiet=quiet, verbose=verbose, suppress_stdout=suppress_stdout)
 
     # Create the bundle with all of the arguments.
     create_bundle(**args)
