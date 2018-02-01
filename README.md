@@ -180,6 +180,19 @@ If you use `csh`, then you need to additionally run `bash` on the remote server 
 exodus aria2c | ssh intoli.com bash
 ```
 
+#### Renaming Binaries
+
+Multiple binaries that have the same name can be installed in parallel through the use of the `--rename`/`-r` option.
+Say that you have two different versions of `grep` on your local machine: one at `/bin/grep` and one at `/usr/local/bin/grep`.
+In that situation, using the `-r` flag allows you to assign aliases for each binary.
+
+```bash
+exodus -r grep-1 -r grep-2 /bin/grep /usr/local/bin/grep
+```
+
+The above command would install the two `grep` versions in parallel with `/bin/grep` called `grep-1` and `/usr/local/bin/grep` called `grep-2`.
+
+
 #### Manual Extraction
 
 You can create a compressed tarball directly instead of the default script by specifying the `--tarball` option.
