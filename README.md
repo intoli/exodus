@@ -29,7 +29,7 @@
 Exodus is a tool that makes it easy to successfully relocate Linux ELF binaries from one system to another.
 This is useful in situations where you don't have root access on a machine or where a package simply isn't available for a given Linux distribution.
 For example, CentOS 6.X and Amazon Linux don't have packages for [Google Chrome](https://www.google.com/chrome/browser/desktop/index.html) or [aria2](https://aria2.github.io/).
-Server-oriented distributions tend to have more limited and outdated packages available, so it's fairly common that one might wish to install a piece of software that they already have installed on their own desktop or laptop.
+Server-oriented distributions tend to have more limited and outdated packages than desktop distributions, so it's fairly common that one might have a piece of software installed on their laptop that they can't easily install on a remote machine.
 
 With exodus, transferring a piece of software that's working on one computer to another is as simple as this.
 
@@ -41,6 +41,19 @@ Exodus handles bundling all of the binary's dependencies, compiling a statically
 You can see it in action here.
 
 ![Demonstration of usage with htop](media/htop-demo.gif)
+
+
+## Table of Contents
+
+- [The Problem Being Solved](#the-problem-being-solved) - An overview of some of the challenges that arise when relocating binaries.
+- [Installation](#installation) - Instructions for installing exodus.
+- [Usage](#usage)
+    - [The Command-Line Interface](#command-line-interface) - The options supported by the command-line utility.
+    - [Usage Examples](#examples) - Common usage patterns, helpful for getting started quickly.
+- [How It Works](#how-it-works) - An overview of how exodus works.
+- [Development](#development) - Instructions for setting up the development environment.
+- [Contributing](#contributing) - Guidelines for contributing.
+- [License](#license) - License details for the project.
 
 
 ## The Problem Being Solved
@@ -104,6 +117,8 @@ An equivalent shell script will be used as a fallback, but it carries significan
 
 
 ## Usage
+
+### Command-Line Interface
 
 The command-line interface supports the following options.
 
@@ -195,11 +210,52 @@ This can be done by adding the following to `~/.bashrc` on the remote server.
 export PATH="~/custom-location/bin:${PATH}"
 ```
 
-## Packaging Format
+
+## How it Works
+
+There are two main components to how exodus works:
+
+1. Finding and bundling all of a binary's dependencies.
+
+2. Launching the binary in such a way that the proper dependencies are used without any potential interaction from system libraries on the destination machine.
+
+The first component is actually fairly simple.
+You can invoke [ld-linux](https://linux.die.net/man/8/ld-linux) with the `LD_TRACE_LOADED_OBJECTS` environment variable set to `1` and it will list all of the resolved library dependencies for a binary.
+For example, running
 
 ```bash
-tree ~/.exodus/ | sed -r 's/([a-f0-9]{5})[a-f0-9]{59}/\1.../g'
+LD_TRACE_LOADED_OBJECTS=1 /lib64/ld-linux-x86-64.so.2 /bin/grep
 ```
+
+will output the following.
+
+```
+    linux-vdso.so.1 =>  (0x00007ffc7495c000)
+    libpcre.so.0 => /lib64/libpcre.so.0 (0x00007f89b2f3e000)
+    libc.so.6 => /lib64/libc.so.6 (0x00007f89b2b7a000)
+    libpthread.so.0 => /usr/lib/libpthread.so.0 (0x00007f0e95e8c000)
+    /lib64/ld-linux-x86-64.so.2 (0x00007f89b3196000)
+```
+
+The `linus-vdso.so.1` dependency refers to kernel space routines that are exported to user space, but the other four are shared library files on disk that are required in order to run `grep`.
+Notably, one of these dependencies is the `/lib64/ld-linux-x86-64.so.2` linker itself.
+The location of this file is typically hardcoded into an ELF binary's `INTERP` header and the linker is invoked by the kernel when you run the program.
+We'll come back to that in a minute, but for now the main point is that we can find a binary's direct dependencies using the linker.
+
+Of course, these direct dependencies might have additional dependencies of their own.
+We can iteratively find all of the necessary dependencies by following the same approach of invoking the linker again for each of the library dependencies.
+This isn't actually necessary for `grep`, but exodus does handle finding the full set of dependencies for you.
+
+After all of the dependencies are found, exodus puts them together with the binary in a tarball that can be extracted (typically into either `/opt/exodus/` or `~/.exodus`).
+We can explore the structure of the grep bundle by using [tree](https://linux.die.net/man/1/tree) combined with a `sed` one-liner to truncate long SHA-256 hashes to 5 digits.
+Running
+
+```bash
+alias truncate-hashes="sed -r 's/([a-f0-9]{5})[a-f0-9]{59}/\1.../g'"
+tree ~/.exodus/ | truncate-hashes
+```
+
+will show us all of the files and folders included in the `grep` bundle.
 
 ```
 /home/sangaline/.exodus/
@@ -232,6 +288,48 @@ tree ~/.exodus/ | sed -r 's/([a-f0-9]{5})[a-f0-9]{59}/\1.../g'
 10 directories, 15 files
 ```
 
+You can see that there are three top-level directories within `~/.exodus/`: `bin`, `bundles`, and `lib`.
+Let's cover these in reverse-alphabetical order, starting with the `lib` directory.
+
+The `lib` directory contains folders whose names correspond to SHA-256 hashes of the libraries that they represent.
+This is done so that multiple versions of a library with the same filename can be extracted in the `lib` directory without overwriting each other.
+The actual library file is stored in a file called `data` so that identical files with different names won't result in multiple copies of the same data.
+Finally, symlinks pointing to the data are added based on the original name of each library.
+This is done mostly as a convenience to someone navigating the directory structure; it provides a human readable indicator of which library is which without causing any data duplication or naming collisions.
+
+Next, we have the `bundles` directory, which is again full of subfolders that have SHA-256 hashes as names.
+The hashes this time correspond to the contents of the binary that is being bundled.
+This is done so that multiple versions of the same binary can be bundled and extracted without the directory contents mixing.
+
+Inside of each bundle subdirectory, there are two additional subdirectories: `bin` and `lib`.
+The `lib` subdirectory simply consists of symlinks to the actual library files in their corresponding top-level `lib/` subdirectories.
+The `bin` subdirectory consists of the original binary file and a second executable called a "launcher."
+Each launcher is a tiny program that invokes the linker and overrides the library search path in such a way that our original binary can run without any system libraries being used and causing issues due to incompatibilities.
+
+When a C compiler and either [musl libc](https://www.musl-libc.org/) or [diet libc](https://www.fefe.de/dietlibc/) are available, exodus will compile a statically linked binary launcher.
+If neither of these are present, it will fall back to using a shell script to perform the task of the launcher.
+This adds a little bit of overhead relative to the binary launchers, but they are helpful for understanding what the launchers do.
+Here's the shell script version of the `grep-launcher`, for example.
+
+```bash
+#! /bin/bash
+
+current_directory="$(dirname "$(readlink -f "$0")")"
+lib_directory="${current_directory}/../lib/"
+linker="${lib_directory}/ld-linux-x86-64.so.2"
+executable="${current_directory}/grep"
+exec "${linker}" --library-path "${lib_directory}" --inhibit-rpath "" "${executable}" "$@"
+```
+
+You can see that the launcher first constructs the full paths for the `lib` directory, the executable, and the linker based on its own location.
+It then executes the linker with a set of arguments that allow it to search the proper `lib` directory, ignore the hardcoded `RPATH`, and run the binary with any arguments to the launcher passed along.
+This serves a similar purpose to something like [patchelf](https://github.com/NixOS/patchelf) that would modify the `INTERP` and `RPATH` of the binary, but it additionally allows for both the linker and library locations to be specified based *solely on their relative locations*.
+This is what allows for the exodus bundles to be extracted in `~/.exodus`, `/opt/exodus/`, or any other location, as long as the internal bundle structure is preserved.
+
+Continuing on with our reverse-alphabetical order, we finally get to the top-level `bin` directory.
+The top-level `bin` directory consists of symlinks of the binary names to their corresponding launchers.
+This allows for the addition of a single directory to a user's `PATH` variable in order to make the migrated exodus binaries accessible.
+
 
 ## Development
 
@@ -263,3 +361,8 @@ tox
 
 Contributions are welcome, but please create an issue on [the issue tracker](https://github.com/intoli/exodus/issues/new) first to discuss the contribution first.
 New feature additions should include tests and it's a requirement that all tests must pass before pull requests are merged.
+
+
+## License
+
+Exodus is licensed under a [BSD 2-Clause License](LICENSE.md) and is copyright [Intoli, LLC](https://intoli.com).
