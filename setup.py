@@ -60,6 +60,7 @@ setup(
     entry_points={
         'console_scripts': [
             'exodus = exodus_bundler.cli:main',
+            'exodus-bundler = exodus_bundler.cli:main',
         ],
     },
 )
