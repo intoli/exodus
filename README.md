@@ -66,7 +66,7 @@ You'll get an error like this when running a relocated binary when it has a miss
 aria2c: error while loading shared libraries: libgnutls.so.30: cannot open shared object file: No such file or directory
 ```
 
-You can try to install these libraries manually, or to relocate them and manually set `LD_LIBRARY_PATH`, but it turns out that the locations of the [ld-linux](https://linux.die.net/man/8/ld-linux) linker and the [glibc](https://www.gnu.org/software/libc/) libraries are hardcoded.
+You can try to install these libraries manually, or to relocate them and set `LD_LIBRARY_PATH` to wherever you put them, but it turns out that the locations of the [ld-linux](https://linux.die.net/man/8/ld-linux) linker and the [glibc](https://www.gnu.org/software/libc/) libraries are hardcoded.
 Things can very quickly turn into a mess of relocation errors,
 
 ```
@@ -80,7 +80,7 @@ segmentation faults,
 Segmentation fault (core dumped)
 ```
 
-or, if you're really unlucky, this symptom of a missing linker.
+or, if you're really unlucky, this very confusing symptom of a missing linker.
 
 ```
 $ ./aria2c
@@ -110,6 +110,9 @@ export PATH="~/.local/bin/:${PATH}"
 ```
 
 to your `~/.bashrc` file.
+
+
+### Optional/Recommended Dependencies
 
 It is also highly recommended that you install [gcc](https://gcc.gnu.org/) and one of either [musl libc](https://www.musl-libc.org/) or [diet libc](https://www.fefe.de/dietlibc/) on the machine where you'll be packaging binaries.
 If present, these small C libries will be used to compile small statically linked launchers for the bundled applications.
