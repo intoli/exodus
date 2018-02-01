@@ -108,25 +108,16 @@ def create_unpackaged_bundle(executables, rename=[], ldd='ldd'):
             # Copy over the library dependencies and link them.
             dependencies = find_all_library_dependencies(ldd, executable)
             for dependency in dependencies:
-                # Create the `lib/{hash}` subdirectory.
+                # Create the `lib/{hash}` library file.
                 dependency_name = os.path.basename(dependency)
                 dependency_hash = sha256_hash(dependency)
-                dependency_directory = os.path.join(lib_directory, dependency_hash)
+                dependency_path = os.path.join(lib_directory, dependency_hash)
+                if not os.path.exists(dependency_path):
+                    shutil.copy(dependency, dependency_path)
 
-                # Create the actual library file if it doesn't exist.
-                dependency_destination = os.path.join(dependency_directory, 'data')
-                if not os.path.exists(dependency_directory):
-                    os.makedirs(dependency_directory)
-                    shutil.copy(dependency, dependency_destination)
-
-                # Create a link to the actual file using the real library name.
-                dependency_link = os.path.join(dependency_directory, dependency_name)
-                if not os.path.exists(dependency_link):
-                    os.symlink(os.path.join('.', 'data'), dependency_link)
-
-                # Create a secondary link to *that* link from inside the bundle lib directory.
+                # Create a link to the actual library from inside the bundle lib directory.
                 bundle_dependency_link = os.path.join(bundle_lib_directory, dependency_name)
-                relative_dependency_path = os.path.relpath(dependency_link, bundle_lib_directory)
+                relative_dependency_path = os.path.relpath(dependency_path, bundle_lib_directory)
                 assert not os.path.exists(bundle_dependency_link), \
                     'The same library filename has been included more than once in a bundle.'
                 os.symlink(relative_dependency_path, bundle_dependency_link)

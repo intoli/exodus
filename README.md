@@ -247,11 +247,11 @@ We can iteratively find all of the necessary dependencies by following the same 
 This isn't actually necessary for `grep`, but exodus does handle finding the full set of dependencies for you.
 
 After all of the dependencies are found, exodus puts them together with the binary in a tarball that can be extracted (typically into either `/opt/exodus/` or `~/.exodus`).
-We can explore the structure of the grep bundle by using [tree](https://linux.die.net/man/1/tree) combined with a `sed` one-liner to truncate long SHA-256 hashes to 5 digits.
+We can explore the structure of the grep bundle by using [tree](https://linux.die.net/man/1/tree) combined with a `sed` one-liner to truncate long SHA-256 hashes to 8 digits.
 Running
 
 ```bash
-alias truncate-hashes="sed -r 's/([a-f0-9]{5})[a-f0-9]{59}/\1.../g'"
+alias truncate-hashes="sed -r 's/([a-f0-9]{8})[a-f0-9]{56}/\1.../g'"
 tree ~/.exodus/ | truncate-hashes
 ```
 
@@ -260,49 +260,39 @@ will show us all of the files and folders included in the `grep` bundle.
 ```
 /home/sangaline/.exodus/
 ├── bin
-│   └── grep -> ../bundles/7477c.../bin/grep-launcher
+│   └── grep -> ../bundles/7477c1a7.../bin/grep-launcher.sh
 ├── bundles
-│   └── 7477c...
+│   └── 7477c1a7...
 │       ├── bin
 │       │   ├── grep
-│       │   └── grep-launcher
+│       │   └── grep-launcher.sh
 │       └── lib
-│           ├── ld-linux-x86-64.so.2 -> ../../../lib/68dd9.../ld-linux-x86-64.so.2
-│           ├── libc.so.6 -> ../../../lib/91a11.../libc.so.6
-│           ├── libpcre.so.1 -> ../../../lib/a0862.../libpcre.so.1
-│           └── libpthread.so.0 -> ../../../lib/55dbf.../libpthread.so.0
+│           ├── ld-linux-x86-64.so.2 -> ../../../lib/68dd9b50...
+│           ├── libc.so.6 -> ../../../lib/91a11344...
+│           ├── libpcre.so.1 -> ../../../lib/a0862ebc...
+│           └── libpthread.so.0 -> ../../../lib/55dbf3e8...
 └── lib
-    ├── 55dbf...
-    │   ├── data
-    │   └── libpthread.so.0 -> ./data
-    ├── 68dd9...
-    │   ├── data
-    │   └── ld-linux-x86-64.so.2 -> ./data
-    ├── 91a11...
-    │   ├── data
-    │   └── libc.so.6 -> ./data
-    └── a0862...
-        ├── data
-        └── libpcre.so.1 -> ./data
+    ├── 55dbf3e8...
+    ├── 68dd9b50...
+    ├── 91a11344...
+    └── a0862ebc...
 
-10 directories, 15 files
+6 directories, 11 files
 ```
 
 You can see that there are three top-level directories within `~/.exodus/`: `bin`, `bundles`, and `lib`.
 Let's cover these in reverse-alphabetical order, starting with the `lib` directory.
 
-The `lib` directory contains folders whose names correspond to SHA-256 hashes of the libraries that they represent.
+The `lib` directory contains library files whose names correspond to SHA-256 hashes of the libraries that they represent.
 This is done so that multiple versions of a library with the same filename can be extracted in the `lib` directory without overwriting each other.
-The actual library file is stored in a file called `data` so that identical files with different names won't result in multiple copies of the same data.
-Finally, symlinks pointing to the data are added based on the original name of each library.
-This is done mostly as a convenience to someone navigating the directory structure; it provides a human readable indicator of which library is which without causing any data duplication or naming collisions.
+This also means that identical files with different names won't result in multiple copies of the same data.
 
-Next, we have the `bundles` directory, which is again full of subfolders that have SHA-256 hashes as names.
+Next, we have the `bundles` directory, which is full of subfolders with SHA-256 hashes as names.
 The hashes this time correspond to the contents of the binary that is being bundled.
-This is done so that multiple versions of the same binary can be bundled and extracted without the directory contents mixing.
+The purpose of this is that multiple versions of the same binary can be bundled and extracted without the directory contents mixing.
 
 Inside of each bundle subdirectory, there are two additional subdirectories: `bin` and `lib`.
-The `lib` subdirectory simply consists of symlinks to the actual library files in their corresponding top-level `lib/` subdirectories.
+The `lib` subdirectory simply consists of symlinks to the actual library files in the top-level `lib/` directory.
 The `bin` subdirectory consists of the original binary file and a second executable called a "launcher."
 Each launcher is a tiny program that invokes the linker and overrides the library search path in such a way that our original binary can run without any system libraries being used and causing issues due to incompatibilities.
 
