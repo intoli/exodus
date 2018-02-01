@@ -41,7 +41,7 @@ def parse_args(args=None, namespace=None):
         'Suppress warning messages.'
     ))
 
-    parser.add_argument('-r', '--rename', metavar='NEW_NAME', nargs=1, action='append',
+    parser.add_argument('-r', '--rename', metavar='NEW_NAME', nargs='?', action='append',
         default=[], help=(
             'Renames the binary executable(s) before packaging. The order of rename tags must '
             'match the order of positional executable arguments.'
