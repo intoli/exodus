@@ -33,6 +33,7 @@ jobs:
           command: |
             . .env/bin/activate
             tox
+            echo "{ \"coverage\": \"$(coverage report | tail -n 1 | awk '{print $6}')\" }" > htmlcov/total-coverage.json
 
       - run:
           name: Build the package.
