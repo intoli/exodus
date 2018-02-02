@@ -1,0 +1,4 @@
+/usr/lib/libncursesw.so.6
+/usr/lib/libm.so.6
+/usr/lib/libc.so.6
+/usr/lib64/ld-linux-x86-64.so.2

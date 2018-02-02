@@ -174,8 +174,22 @@ def find_all_library_dependencies(ldd, binary):
 
 def find_direct_library_dependencies(ldd, binary):
     """Finds the libraries that a binary directly links to."""
-    matches = filter(None, (re.search('=>\s*([^(]*?)\s*\(', line) for line in run_ldd(ldd, binary)))
-    return [match.group(1) for match in matches]
+    return parse_dependencies_from_ldd_output(run_ldd(ldd, binary))
+
+
+def parse_dependencies_from_ldd_output(content):
+    """Takes the output of `ldd` as a string or list of lines and parses the dependencies."""
+    if type(content) == str:
+        content = content.split('\n')
+
+    dependencies = []
+    for line in content:
+        match = re.search('=>\s*(/.*?)\s*\(', line)
+        match = match or re.search('\s*(/.*?)\s*\(', line)
+        if match:
+            dependencies.append(match.group(1))
+
+    return dependencies
 
 
 def resolve_binary(binary):
