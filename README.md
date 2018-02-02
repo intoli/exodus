@@ -150,7 +150,7 @@ optional arguments:
                         The file where the bundle will be written out to. The
                         extension depends on the output type. The
                         "{{executables}}" and "{{extension}}" template strings
-                        can be used in the provided filename. If ommited, the
+                        can be used in the provided filename. If omitted, the
                         output will go to stdout when it is being piped, or to
                         "./exodus-{{executables}}-bundle.{{extension}}"
                         otherwise. (default: None)
