@@ -118,7 +118,7 @@ to your `~/.bashrc` file.
 ### Optional/Recommended Dependencies
 
 It is also highly recommended that you install [gcc](https://gcc.gnu.org/) and one of either [musl libc](https://www.musl-libc.org/) or [diet libc](https://www.fefe.de/dietlibc/) on the machine where you'll be packaging binaries.
-If present, these small C libries will be used to compile small statically linked launchers for the bundled applications.
+If present, these small C libraries will be used to compile small statically linked launchers for the bundled applications.
 An equivalent shell script will be used as a fallback, but it carries significant overhead compared to the compiled launchers.
 
 
@@ -150,7 +150,7 @@ optional arguments:
                         The file where the bundle will be written out to. The
                         extension depends on the output type. The
                         "{{executables}}" and "{{extension}}" template strings
-                        can be used in the provided filename. If ommited, the
+                        can be used in the provided filename. If omitted, the
                         output will go to stdout when it is being piped, or to
                         "./exodus-{{executables}}-bundle.{{extension}}"
                         otherwise. (default: None)
