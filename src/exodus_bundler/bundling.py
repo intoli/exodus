@@ -165,6 +165,13 @@ def create_unpackaged_bundle(executables, rename=[], ldd='ldd'):
         raise
 
 
+def detect_elf_binary(filename):
+    """Returns `True` if a file has an ELF header."""
+    with open(filename, 'rb') as f:
+        first_four_bytes = f.read(4)
+    return first_four_bytes == b'\x7fELF'
+
+
 def find_all_library_dependencies(ldd, binary):
     """Finds all libraries that a binary directly or indirectly links to."""
     all_dependencies = set()
