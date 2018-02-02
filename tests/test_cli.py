@@ -17,6 +17,14 @@ ldd_path = os.path.join(chroot, 'bin', 'ldd')
 fizz_buzz_path = os.path.join(chroot, 'bin', 'fizz-buzz')
 
 
+def run_exodus(args, **options):
+    options['universal_newlines'] = options.get('universal_newlines', True)
+    process = subprocess.Popen(
+        ['exodus'] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **options)
+    stdout, stderr = process.communicate()
+    return process.returncode, stdout, stderr
+
+
 def test_logging_outputs(capsys):
     # There should be no output before configuring the logger.
     logger.error('error')
