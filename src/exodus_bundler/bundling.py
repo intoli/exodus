@@ -22,6 +22,12 @@ from exodus_bundler.templating import render_template_file
 logger = logging.getLogger(__name__)
 
 
+try:
+    FileNotFoundError
+except NameError:
+    FileNotFoundError = IOError
+
+
 def create_bundle(executables, output, tarball=False, rename=[], ldd='ldd'):
     """Handles the creation of the full bundle."""
     # Initialize these ahead of time so they're always available for error handling.
@@ -44,7 +50,7 @@ def create_bundle(executables, output, tarball=False, rename=[], ldd='ldd'):
 
         # Configure the appropriate output mechanism.
         if output_filename == '-':
-            output_file = sys.stdout.buffer
+            output_file = getattr(sys.stdout, 'buffer', sys.stdout)
         else:
             output_file = open(output_filename, 'wb')
 
