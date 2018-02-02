@@ -89,19 +89,21 @@ def test_writing_bundle_to_disk(script_runner):
             os.unlink(filename)
 
 
-def test_writing_bundle_to_stdout(script_runner):
+def test_writing_bundle_to_stdout():
     args = ['--ldd', ldd_path, '--output', '-', fizz_buzz_path]
-    result = script_runner.run('exodus', *args)
-    assert result.stdout.startswith('#! /bin/bash'), result.stderr
+    returncode, stdout, stderr = run_exodus(args)
+    assert returncode == 0, 'Exodus should have exited with a success status code, but didn\'t.'
+    assert stdout.startswith('#! /bin/bash'), stderr
 
 
-def test_writing_tarball_to_disk(script_runner):
+def test_writing_tarball_to_disk():
     f, filename = tempfile.mkstemp(suffix='.tgz')
     os.close(f)
     args = ['--ldd', ldd_path, '--output', filename, '--tarball', fizz_buzz_path]
     try:
-        result = script_runner.run('exodus', *args)
-        assert tarfile.is_tarfile(filename), result.stderr
+        returncode, stdout, stderr = run_exodus(args)
+        assert returncode == 0, 'Exodus should have exited with a success status code, but didn\'t.'
+        assert tarfile.is_tarfile(filename), stderr
         with tarfile.open(filename, mode='r:gz') as f_in:
             assert 'exodus/bin/fizz-buzz' in f_in.getnames()
     finally:
@@ -109,10 +111,10 @@ def test_writing_tarball_to_disk(script_runner):
             os.unlink(filename)
 
 
-def test_writing_tarball_to_stdout(script_runner):
+def test_writing_tarball_to_stdout():
     args = ['--ldd', ldd_path, '--output', '-', '--tarball', fizz_buzz_path]
-    process = subprocess.Popen(['exodus'] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    stdout, stderr = process.communicate()
+    returncode, stdout, stderr = run_exodus(args, universal_newlines=False)
+    assert returncode == 0, 'Exodus should have exited with a success status code, but didn\'t.'
     stream = io.BytesIO(stdout)
     with tarfile.open(fileobj=stream, mode='r:gz') as f:
         assert 'exodus/bin/fizz-buzz' in f.getnames(), stderr
