@@ -2,6 +2,7 @@ graft media
 graft src
 graft tests
 graft .circleci
+graft .github
 
 include .bumpversion.cfg
 include .coveragerc
