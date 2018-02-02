@@ -1,4 +1,5 @@
 import os
+import tempfile
 
 import pytest
 
@@ -48,6 +49,20 @@ def test_quiet_and_verbose_flags():
     assert result['quiet'] and not result['verbose']
     result = parse_args(['--verbose', '/bin/bash'])
     assert result['verbose'] and not result['quiet']
+
+
+def test_writing_bundle_to_disk(script_runner):
+    f, filename = tempfile.mkstemp(suffix='.sh')
+    os.close(f)
+    args = ['--ldd', ldd_path, '--output', filename, fizz_buzz_path]
+    try:
+        result = script_runner.run('exodus', *args)
+        with open(filename, 'rb') as f_in:
+            first_line = f_in.readline().strip()
+        assert first_line == b'#! /bin/bash', result.stderr
+    finally:
+        if os.path.exists(filename):
+            os.unlink(filename)
 
 
 def test_writing_bundle_to_stdout(script_runner):
