@@ -1,0 +1,7 @@
+	linux-vdso.so.1 =>  (0x00007ffe625eb000)
+	libncursesw.so.5 => /lib/x86_64-linux-gnu/libncursesw.so.5 (0x00007f18b88a9000)
+	libtinfo.so.5 => /lib/x86_64-linux-gnu/libtinfo.so.5 (0x00007f18b8680000)
+	libm.so.6 => /lib/x86_64-linux-gnu/libm.so.6 (0x00007f18b837a000)
+	libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f18b7fb2000)
+	libdl.so.2 => /lib/x86_64-linux-gnu/libdl.so.2 (0x00007f18b7dae000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007f18b8add000)
