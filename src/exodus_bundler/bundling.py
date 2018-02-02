@@ -44,7 +44,7 @@ def create_bundle(executables, output, tarball=False, rename=[], ldd='ldd'):
 
         # Configure the appropriate output mechanism.
         if output_filename == '-':
-            output_file = sys.stdout.buffer
+            output_file = getattr(sys.stdout, 'buffer', sys.stdout)
         else:
             output_file = open(output_filename, 'wb')
 
