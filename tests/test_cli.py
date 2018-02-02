@@ -45,6 +45,19 @@ def test_logging_outputs(capsys):
     assert all(output not in err for output in ('info', 'debug'))
 
 
+def test_missing_binary(capsys):
+    # Without the --verbose flag.
+    command = 'this-is-almost-definitely-not-going-to-be-a-command-anywhere'
+    returncode, stdout, stderr = run_exodus([command])
+    assert returncode != 0, 'Running exodus should have failed.'
+    assert 'Traceback' not in stderr, 'Traceback should not be included without the --verbose flag.'
+
+    # With the --verbose flag.
+    returncode, stdout, stderr = run_exodus(['--verbose', command])
+    assert returncode != 0, 'Running exodus should have failed.'
+    assert 'Traceback' in stderr, 'Traceback should be included with the --verbose flag.'
+
+
 def test_required_argument():
     with pytest.raises(SystemExit):
         parse_args([])
