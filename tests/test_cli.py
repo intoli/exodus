@@ -1,8 +1,16 @@
+import os
+
 import pytest
 
 from exodus_bundler.bundling import logger
 from exodus_bundler.cli import configure_logging
 from exodus_bundler.cli import parse_args
+
+
+parent_directory = os.path.dirname(os.path.realpath(__file__))
+chroot = os.path.join(parent_directory, 'data', 'binaries', 'chroot')
+ldd_path = os.path.join(chroot, 'bin', 'ldd')
+fizz_buzz_path = os.path.join(chroot, 'bin', 'fizz-buzz')
 
 
 def test_logging_outputs(capsys):
@@ -40,3 +48,9 @@ def test_quiet_and_verbose_flags():
     assert result['quiet'] and not result['verbose']
     result = parse_args(['--verbose', '/bin/bash'])
     assert result['verbose'] and not result['quiet']
+
+
+def test_writing_bundle_to_stdout(script_runner):
+    args = ['--ldd', ldd_path, '--output', '-', fizz_buzz_path]
+    result = script_runner.run('exodus', *args)
+    assert result.stdout.startswith('#! /bin/bash'), result.stderr
