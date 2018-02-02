@@ -18,7 +18,7 @@
         <img src="https://img.shields.io/circleci/project/github/Intoli/exodus/master.svg"
             alt="Build Status"></a>
     <a href="https://circleci.com/gh/Intoli/exodus/tree/master">
-        <img src="https://img.shields.io/badge/coverage-92.09%25-lightgrey.svg"
+        <img src="https://img.shields.io/badge/coverage-94.44%25-lightgrey.svg"
             alt="Coverage"></a>
     <a href="https://github.com/Intoli/exodus/blob/master/LICENSE.md">
         <img src="https://img.shields.io/pypi/l/exodus-bundler.svg"
