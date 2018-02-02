@@ -94,7 +94,7 @@ def test_writing_bundle_to_stdout():
     args = ['--ldd', ldd_path, '--output', '-', fizz_buzz_path]
     returncode, stdout, stderr = run_exodus(args)
     assert returncode == 0, 'Exodus should have exited with a success status code, but didn\'t.'
-    assert stdout.startswith('#! /bin/bash'), stderr
+    assert stdout.startswith('#! /bin/sh'), stderr
 
 
 def test_writing_tarball_to_disk():

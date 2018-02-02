@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /bin/sh
 
 user_directory="${HOME}/.exodus"
 output_directory=/opt/exodus
