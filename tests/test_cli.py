@@ -75,15 +75,16 @@ def test_quiet_and_verbose_flags():
     assert result['verbose'] and not result['quiet']
 
 
-def test_writing_bundle_to_disk(script_runner):
+def test_writing_bundle_to_disk():
     f, filename = tempfile.mkstemp(suffix='.sh')
     os.close(f)
     args = ['--ldd', ldd_path, '--output', filename, fizz_buzz_path]
     try:
-        result = script_runner.run('exodus', *args)
+        returncode, stdout, stderr = run_exodus(args)
+        assert returncode == 0, 'Exodus should have exited with a success status code, but didn\'t.'
         with open(filename, 'rb') as f_in:
             first_line = f_in.readline().strip()
-        assert first_line == b'#! /bin/bash', result.stderr
+        assert first_line == b'#! /bin/bash', stderr
     finally:
         if os.path.exists(filename):
             os.unlink(filename)
