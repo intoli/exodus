@@ -117,6 +117,6 @@ def main(args=None, namespace=None):
     try:
         create_bundle(**args)
     except FatalError as fatal_error:
-        logger.error(str(fatal_error))
         logger.error('Fatal error encountered, exiting.')
+        logger.error(fatal_error, exc_info=verbose)
         sys.exit(1)
