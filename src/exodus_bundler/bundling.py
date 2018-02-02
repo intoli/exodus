@@ -181,8 +181,15 @@ def parse_dependencies_from_ldd_output(content):
     """Takes the output of `ldd` as a string or list of lines and parses the dependencies."""
     if type(content) == str:
         content = content.split('\n')
-    matches = filter(None, (re.search('=>\s*([^(]*?)\s*\(', line) for line in content))
-    return [match.group(1) for match in matches]
+
+    dependencies = []
+    for line in content:
+        match = re.search('=>\s*(/.*?)\s*\(', line)
+        match = match or re.search('\s*(/.*?)\s*\(', line)
+        if match:
+            dependencies.append(match.group(1))
+
+    return dependencies
 
 
 def resolve_binary(binary):
