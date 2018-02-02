@@ -3,15 +3,19 @@ import shutil
 from subprocess import PIPE
 from subprocess import Popen
 
+import pytest
+
 from exodus_bundler.bundling import create_unpackaged_bundle
 from exodus_bundler.bundling import find_all_library_dependencies
 from exodus_bundler.bundling import find_direct_library_dependencies
+from exodus_bundler.bundling import parse_dependencies_from_ldd_output
 from exodus_bundler.bundling import resolve_binary
 from exodus_bundler.bundling import run_ldd
 from exodus_bundler.bundling import sha256_hash
 
 
 parent_directory = os.path.dirname(os.path.realpath(__file__))
+ldd_output_directory = os.path.join(parent_directory, 'data', 'ldd-output')
 chroot = os.path.join(parent_directory, 'data', 'binaries', 'chroot')
 ldd = os.path.join(chroot, 'bin', 'ldd')
 executable = os.path.join(chroot, 'bin', 'fizz-buzz')
@@ -49,6 +53,27 @@ def test_find_direct_library_dependencies():
         'Dependencies should be absolute paths.'
     assert any('libc.so' in line for line in run_ldd(ldd, executable)), \
         '"libc" was not found as a direct dependency of the executable.'
+
+
+@pytest.mark.parametrize('filename_prefix', [
+    'htop-amazon-linux',
+    'htop-arch',
+    'htop-ubuntu-14.04',
+])
+def test_parse_dependencies_from_ldd_output(filename_prefix):
+    ldd_output_filename = filename_prefix + '.txt'
+    with open(os.path.join(ldd_output_directory, ldd_output_filename)) as f:
+        ldd_output = f.read()
+    dependencies = parse_dependencies_from_ldd_output(ldd_output)
+
+    ldd_results_filename = filename_prefix + '-dependencies.txt'
+    with open(os.path.join(ldd_output_directory, ldd_results_filename)) as f:
+        expected_dependencies = [line for line in f.read().split('\n') if len(line)]
+    print(dependencies)
+    print(expected_dependencies)
+
+    assert set(dependencies) == set(expected_dependencies), \
+        'The dependencies were not parsed correctly from ldd output for "%s"' % filename_prefix
 
 
 def test_resolve_binary():
