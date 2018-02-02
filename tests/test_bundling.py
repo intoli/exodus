@@ -6,6 +6,7 @@ from subprocess import Popen
 import pytest
 
 from exodus_bundler.bundling import create_unpackaged_bundle
+from exodus_bundler.bundling import detect_elf_binary
 from exodus_bundler.bundling import find_all_library_dependencies
 from exodus_bundler.bundling import find_direct_library_dependencies
 from exodus_bundler.bundling import parse_dependencies_from_ldd_output
@@ -38,6 +39,11 @@ def test_create_unpackaged_bundle():
     finally:
         assert root_directory.startswith('/tmp/')
         shutil.rmtree(root_directory)
+
+
+def test_detect_elf_binary():
+    assert detect_elf_binary(executable), 'The `fizz-buzz` file should be an ELF binary.'
+    assert not detect_elf_binary(ldd), 'The `ldd` file should be a shell script.'
 
 
 def test_find_all_library_dependencies():

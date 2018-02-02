@@ -17,6 +17,14 @@ ldd_path = os.path.join(chroot, 'bin', 'ldd')
 fizz_buzz_path = os.path.join(chroot, 'bin', 'fizz-buzz')
 
 
+def run_exodus(args, **options):
+    options['universal_newlines'] = options.get('universal_newlines', True)
+    process = subprocess.Popen(
+        ['exodus'] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **options)
+    stdout, stderr = process.communicate()
+    return process.returncode, stdout, stderr
+
+
 def test_logging_outputs(capsys):
     # There should be no output before configuring the logger.
     logger.error('error')
@@ -37,6 +45,19 @@ def test_logging_outputs(capsys):
     assert all(output not in err for output in ('info', 'debug'))
 
 
+def test_missing_binary(capsys):
+    # Without the --verbose flag.
+    command = 'this-is-almost-definitely-not-going-to-be-a-command-anywhere'
+    returncode, stdout, stderr = run_exodus([command])
+    assert returncode != 0, 'Running exodus should have failed.'
+    assert 'Traceback' not in stderr, 'Traceback should not be included without the --verbose flag.'
+
+    # With the --verbose flag.
+    returncode, stdout, stderr = run_exodus(['--verbose', command])
+    assert returncode != 0, 'Running exodus should have failed.'
+    assert 'Traceback' in stderr, 'Traceback should be included with the --verbose flag.'
+
+
 def test_required_argument():
     with pytest.raises(SystemExit):
         parse_args([])
@@ -54,33 +75,36 @@ def test_quiet_and_verbose_flags():
     assert result['verbose'] and not result['quiet']
 
 
-def test_writing_bundle_to_disk(script_runner):
+def test_writing_bundle_to_disk():
     f, filename = tempfile.mkstemp(suffix='.sh')
     os.close(f)
     args = ['--ldd', ldd_path, '--output', filename, fizz_buzz_path]
     try:
-        result = script_runner.run('exodus', *args)
+        returncode, stdout, stderr = run_exodus(args)
+        assert returncode == 0, 'Exodus should have exited with a success status code, but didn\'t.'
         with open(filename, 'rb') as f_in:
             first_line = f_in.readline().strip()
-        assert first_line == b'#! /bin/bash', result.stderr
+        assert first_line == b'#! /bin/bash', stderr
     finally:
         if os.path.exists(filename):
             os.unlink(filename)
 
 
-def test_writing_bundle_to_stdout(script_runner):
+def test_writing_bundle_to_stdout():
     args = ['--ldd', ldd_path, '--output', '-', fizz_buzz_path]
-    result = script_runner.run('exodus', *args)
-    assert result.stdout.startswith('#! /bin/bash'), result.stderr
+    returncode, stdout, stderr = run_exodus(args)
+    assert returncode == 0, 'Exodus should have exited with a success status code, but didn\'t.'
+    assert stdout.startswith('#! /bin/bash'), stderr
 
 
-def test_writing_tarball_to_disk(script_runner):
+def test_writing_tarball_to_disk():
     f, filename = tempfile.mkstemp(suffix='.tgz')
     os.close(f)
     args = ['--ldd', ldd_path, '--output', filename, '--tarball', fizz_buzz_path]
     try:
-        result = script_runner.run('exodus', *args)
-        assert tarfile.is_tarfile(filename), result.stderr
+        returncode, stdout, stderr = run_exodus(args)
+        assert returncode == 0, 'Exodus should have exited with a success status code, but didn\'t.'
+        assert tarfile.is_tarfile(filename), stderr
         with tarfile.open(filename, mode='r:gz') as f_in:
             assert 'exodus/bin/fizz-buzz' in f_in.getnames()
     finally:
@@ -88,10 +112,10 @@ def test_writing_tarball_to_disk(script_runner):
             os.unlink(filename)
 
 
-def test_writing_tarball_to_stdout(script_runner):
+def test_writing_tarball_to_stdout():
     args = ['--ldd', ldd_path, '--output', '-', '--tarball', fizz_buzz_path]
-    process = subprocess.Popen(['exodus'] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    stdout, stderr = process.communicate()
+    returncode, stdout, stderr = run_exodus(args, universal_newlines=False)
+    assert returncode == 0, 'Exodus should have exited with a success status code, but didn\'t.'
     stream = io.BytesIO(stdout)
     with tarfile.open(fileobj=stream, mode='r:gz') as f:
         assert 'exodus/bin/fizz-buzz' in f.getnames(), stderr

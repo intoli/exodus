@@ -4,6 +4,10 @@ import sys
 
 from exodus_bundler import root_logger
 from exodus_bundler.bundling import create_bundle
+from exodus_bundler.errors import FatalError
+
+
+logger = logging.getLogger(__name__)
 
 
 def parse_args(args=None, namespace=None):
@@ -110,4 +114,9 @@ def main(args=None, namespace=None):
     configure_logging(quiet=quiet, verbose=verbose, suppress_stdout=suppress_stdout)
 
     # Create the bundle with all of the arguments.
-    create_bundle(**args)
+    try:
+        create_bundle(**args)
+    except FatalError as fatal_error:
+        logger.error('Fatal error encountered, exiting.')
+        logger.error(fatal_error, exc_info=verbose)
+        sys.exit(1)

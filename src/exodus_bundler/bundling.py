@@ -12,6 +12,8 @@ import tempfile
 from subprocess import PIPE
 from subprocess import Popen
 
+from exodus_bundler.errors import InvalidElfBinaryError
+from exodus_bundler.errors import MissingFileError
 from exodus_bundler.launchers import CompilerNotFoundError
 from exodus_bundler.launchers import construct_bash_launcher
 from exodus_bundler.launchers import construct_binary_launcher
@@ -20,12 +22,6 @@ from exodus_bundler.templating import render_template_file
 
 
 logger = logging.getLogger(__name__)
-
-
-try:
-    FileNotFoundError
-except NameError:
-    FileNotFoundError = IOError
 
 
 def create_bundle(executables, output, tarball=False, rename=[], ldd='ldd'):
@@ -165,6 +161,17 @@ def create_unpackaged_bundle(executables, rename=[], ldd='ldd'):
         raise
 
 
+def detect_elf_binary(filename):
+    """Returns `True` if a file has an ELF header."""
+    if not os.path.exists(filename):
+        raise MissingFileError('The "%s" file was not found.' % filename)
+
+    with open(filename, 'rb') as f:
+        first_four_bytes = f.read(4)
+
+    return first_four_bytes == b'\x7fELF'
+
+
 def find_all_library_dependencies(ldd, binary):
     """Finds all libraries that a binary directly or indirectly links to."""
     all_dependencies = set()
@@ -200,23 +207,31 @@ def parse_dependencies_from_ldd_output(content):
 
 def resolve_binary(binary):
     """Attempts to find the absolute path to the binary."""
-    if not os.path.exists(binary):
+    absolute_binary_path = os.path.normpath(os.path.abspath(binary))
+    if not os.path.exists(absolute_binary_path):
         for path in os.getenv('PATH', '').split(os.pathsep):
             absolute_binary_path = os.path.normpath(os.path.abspath(os.path.join(path, binary)))
             if os.path.exists(absolute_binary_path):
-                binary = absolute_binary_path
-    return binary
+                break
+        else:
+            raise MissingFileError('The "%s" binary could not be found in $PATH.')
+    return absolute_binary_path
 
 
 def run_ldd(ldd, binary):
     """Runs `ldd` and gets the combined stdout/stderr output as a list of lines."""
-    if not os.path.exists(binary):
-        raise FileNotFoundError('"%s" is not a file.')
+    if not detect_elf_binary(resolve_binary(binary)):
+        raise InvalidElfBinaryError('The "%s" file is not a binary ELF file.' % binary)
+
     process = Popen([ldd, binary], stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
     return stdout.decode('utf-8').split('\n') + stderr.decode('utf-8').split('\n')
 
 
 def sha256_hash(filename):
+    """Produces an SHA-256 hash of a file."""
+    if not os.path.exists(filename):
+        raise MissingFileError('The "%s" file was not found.' % filename)
+
     with open(filename, 'rb') as f:
         return hashlib.sha256(f.read()).hexdigest()
