@@ -14,13 +14,13 @@
 </h1>
 
 <p align="left">
-    <a href="https://circleci.com/gh/Intoli/exodus/tree/master">
-        <img src="https://img.shields.io/circleci/project/github/Intoli/exodus/master.svg"
+    <a href="https://circleci.com/gh/intoli/exodus/tree/master">
+        <img src="https://img.shields.io/circleci/project/github/intoli/exodus/master.svg"
             alt="Build Status"></a>
-    <a href="https://circleci.com/gh/Intoli/exodus/tree/master">
+    <a href="https://circleci.com/gh/intoli/exodus/tree/master">
         <img src="https://img.shields.io/badge/coverage-94.44%25-lightgrey.svg"
             alt="Coverage"></a>
-    <a href="https://github.com/Intoli/exodus/blob/master/LICENSE.md">
+    <a href="https://github.com/intoli/exodus/blob/master/LICENSE.md">
         <img src="https://img.shields.io/pypi/l/exodus-bundler.svg"
             alt="License"></a>
     <a href="https://pypi.python.org/pypi/exodus-bundler/">
