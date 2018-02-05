@@ -13,6 +13,7 @@ from subprocess import PIPE
 from subprocess import Popen
 
 from exodus_bundler.errors import InvalidElfBinaryError
+from exodus_bundler.errors import LibraryConflictError
 from exodus_bundler.errors import MissingFileError
 from exodus_bundler.launchers import CompilerNotFoundError
 from exodus_bundler.launchers import construct_bash_launcher
@@ -120,8 +121,13 @@ def create_unpackaged_bundle(executables, rename=[], ldd='ldd'):
                 # Create a link to the actual library from inside the bundle lib directory.
                 bundle_dependency_link = os.path.join(bundle_lib_directory, dependency_name)
                 relative_dependency_path = os.path.relpath(dependency_path, bundle_lib_directory)
-                assert not os.path.exists(bundle_dependency_link), \
-                    'The same library filename has been included more than once in a bundle.'
+                if os.path.exists(bundle_dependency_link):
+                    link_destination = os.readlink(bundle_dependency_link)
+                    link_destination = os.path.join(bundle_lib_directory, link_destination)
+                    # This is only a problem if the duplicate libraries have different content.
+                    if os.path.normpath(link_destination) != os.path.normpath(dependency_path):
+                        raise LibraryConflictError(
+                            'A library called "%s" was linked more than once.' % dependency_name)
                 os.symlink(relative_dependency_path, bundle_dependency_link)
 
             # Copy over the executable.
