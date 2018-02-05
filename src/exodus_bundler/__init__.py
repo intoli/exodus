@@ -1,7 +1,7 @@
 import logging
 
 
-__version__ = '1.1.6'
+__version__ = '1.1.7'
 
 root_logger = logging.getLogger(__name__)
 root_logger.handlers = [logging.NullHandler()]
