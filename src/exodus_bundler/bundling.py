@@ -214,7 +214,7 @@ def resolve_binary(binary):
             if os.path.exists(absolute_binary_path):
                 break
         else:
-            raise MissingFileError('The "%s" binary could not be found in $PATH.')
+            raise MissingFileError('The "%s" binary could not be found in $PATH.' % binary)
     return absolute_binary_path
 
 
