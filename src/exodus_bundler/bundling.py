@@ -121,14 +121,15 @@ def create_unpackaged_bundle(executables, rename=[], ldd='ldd'):
                 # Create a link to the actual library from inside the bundle lib directory.
                 bundle_dependency_link = os.path.join(bundle_lib_directory, dependency_name)
                 relative_dependency_path = os.path.relpath(dependency_path, bundle_lib_directory)
-                if os.path.exists(bundle_dependency_link):
+                if not os.path.exists(bundle_dependency_link):
+                    os.symlink(relative_dependency_path, bundle_dependency_link)
+                else:
                     link_destination = os.readlink(bundle_dependency_link)
                     link_destination = os.path.join(bundle_lib_directory, link_destination)
                     # This is only a problem if the duplicate libraries have different content.
                     if os.path.normpath(link_destination) != os.path.normpath(dependency_path):
                         raise LibraryConflictError(
                             'A library called "%s" was linked more than once.' % dependency_name)
-                os.symlink(relative_dependency_path, bundle_dependency_link)
 
             # Copy over the executable.
             bundle_executable_path = os.path.join(bundle_bin_directory, binary_name)
