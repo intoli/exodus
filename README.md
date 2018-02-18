@@ -231,6 +231,51 @@ export PATH="~/custom-location/bin:${PATH}"
 ```
 
 
+#### Adding to a Docker Image
+
+Tarball formatted exodus bundles can easily be included in Docker images by using the [ADD](https://docs.docker.com/engine/reference/builder/#add) instruction.
+You must first create a bundle using the `--tarball` option
+
+```bash
+# Create and enter a directory for the Docker image.
+mkdir jq
+cd jq
+
+# Generate the `exodus-jq-bundle.tgz` bundle.
+exodus --tarball jq
+```
+
+and then create a `Dockerfile` file inside of the `jq` directory with the following contents.
+
+```
+FROM scratch
+ADD exodus-jq-bundle.tgz /opt/
+ENTRYPOINT ["/opt/exodus/bin/jq"]
+```
+
+The Docker image can then be built by running
+
+```bash
+docker build -t jq .
+```
+
+and `jq` can be run inside of the container.
+
+```bash
+docker run jq
+```
+
+This simple image will include only the `jq` binary and dependencies, but the bundles can be included in existing docker images in the same way.
+For example, adding
+
+```bash
+ENV PATH="/opt/exodus/bin:${PATH}"
+ADD exodus-jq-bundle.tgz /opt/
+```
+
+to an existing `Dockerfile` will make the `jq` binary available for use inside the container.
+
+
 ## How it Works
 
 There are two main components to how exodus works:
