@@ -54,6 +54,7 @@ You can see it in action here.
     - [The Command-Line Interface](#command-line-interface) - The options supported by the command-line utility.
     - [Usage Examples](#examples) - Common usage patterns, helpful for getting started quickly.
 - [How It Works](#how-it-works) - An overview of how exodus works.
+- [Known Limitations](#known-limitations) - Situations that are currently outside the scope of what exodus can handle.
 - [Development](#development) - Instructions for setting up the development environment.
 - [Contributing](#contributing) - Guidelines for contributing.
 - [License](#license) - License details for the project.
@@ -338,6 +339,29 @@ This is what allows for the exodus bundles to be extracted in `~/.exodus`, `/opt
 Continuing on with our reverse-alphabetical order, we finally get to the top-level `bin` directory.
 The top-level `bin` directory consists of symlinks of the binary names to their corresponding launchers.
 This allows for the addition of a single directory to a user's `PATH` variable in order to make the migrated exodus binaries accessible.
+
+
+## Known Limitations
+
+There are several scenarios under which bundling an application with exodus will fail.
+Many of these are things that we're working on and hope to improve in the future, but some are fundamentally by design and are unlikely to change.
+Here you can see an overview of situations where exodus will not be able to successfully relocate executables.
+
+- **Non-ELF Binaries** - Exodus currently only supports bundling ELF binaries.
+    This means that interpretted executable files, like shell scripts, cannot be bundled.
+    The problem that exodus aims to solve is largely centered around the dynamic linking of ELF binaries, so this is unlikely to change in the foreseeable future.
+- **Driver Dependent Libraries** - Unlike some other application bundlers, exodus aims to include all of the required libraries when the bundle is created and to completely isolate the transported binary from the destination machine's system libraries.
+    This means that any libraries which are compiled for specific hardware drivers will only work on machines with the same drivers.
+    A key example of this is the `libGLX_indirect.so` library which can link to either `libGLX_mesa.so` or `libGLX_nvidia.so` depending on which graphics card drivers are used on a given system.
+    Bundling dependencies that are not locally available on the source machine is fundamentally outside the scope of what exodus is designed to do, and this will never change.
+- **Programmatically Loaded Libraries** - Exodus works by using the linker to resolve dynamically linked library dependencies.
+    It is possible for programs to programmatically load libraries, by using calls to [dlopen](http://man7.org/linux/man-pages/man3/dlopen.3.html) for example.
+    These dependencies will not be resolved by the linker, and therefore will not be included in the bundles that exodus creates.
+    This is a difficult problem to overcome, but there are plans to improve exodus' handling of these libraries in the future.
+- **Non-Library Dependencies** - Many programs depend on files other than their dynamically linked libraries.
+    For example, `nmap` depends on a collection of `lua` scripts to run.
+    These files will not currently be included in exodus bundles.
+    It is very likely that support will be added for at least manually specifying these files as additional dependencies to be included in a bundle.
 
 
 ## Development
