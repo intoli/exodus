@@ -11,7 +11,7 @@ echo "Installing executable bundle in \"${output_directory}\"..."
 mkdir -p ${output_directory} 2> /dev/null
 
 # Actually perform the extraction.
-base64 -d << "END_OF_FILE" | tar -C "${output_directory}" --strip 1 --no-same-owner --preserve-permissions -zvxf - > /dev/null
+base64 -d << "END_OF_FILE" | tar -C "${output_directory}" --strip-components 1 --no-same-owner --preserve-permissions -zvxf - > /dev/null
 {{base64_encoded_tarball}}
 END_OF_FILE
 if [ $? -eq 0 ]; then
