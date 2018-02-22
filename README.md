@@ -399,6 +399,11 @@ Here you can see an overview of situations where exodus will not be able to succ
     There are some exceptions to this, for example x64 processors are backwards compatible with x86 instruction sets, but you will not be able to migrate x64 binaries to an x86 or an ARM machine.
     Doing so would require processor emulation, and this is definitely outside the scope of the exodus project.
     If you find yourself looking for a solution to this problem, then you might want to check out [QEMU](https://www.qemu.org/).
+- **Incompatible Glibc and Kernel Versions** - When glibc is compiled, it is configured to target a specific kernel version.
+    Trying to run any software that was compiled against glibc on a system using an older kernel version than glibc's target version will result in a `FATAL: kernel too old` error.
+    You can check the oldest supported kernel version for a binary by running `file /path/to/binary`.
+    The output should include a string like `for GNU/Linux 2.6.32` which signifies the oldest kernel version that the binary is compatible with.
+    As a workaround, you can create exodus bundles in a Docker image using an operating system image which supports older kernels (*e.g.* use an outdated version of the operating system).
 - **Driver Dependent Libraries** - Unlike some other application bundlers, exodus aims to include all of the required libraries when the bundle is created and to completely isolate the transported binary from the destination machine's system libraries.
     This means that any libraries which are compiled for specific hardware drivers will only work on machines with the same drivers.
     A key example of this is the `libGLX_indirect.so` library which can link to either `libGLX_mesa.so` or `libGLX_nvidia.so` depending on which graphics card drivers are used on a given system.
