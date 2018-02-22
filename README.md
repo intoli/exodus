@@ -395,6 +395,10 @@ Here you can see an overview of situations where exodus will not be able to succ
 - **Non-ELF Binaries** - Exodus currently only supports bundling ELF binaries.
     This means that interpretted executable files, like shell scripts, cannot be bundled.
     The problem that exodus aims to solve is largely centered around the dynamic linking of ELF binaries, so this is unlikely to change in the foreseeable future.
+- **Incompatible CPU Architectures** - Binaries compiled for one CPU architecture will generally not be able to run on a CPU of another architecture.
+    There are some exceptions to this, for example x64 processors are backwards compatible with x86 instruction sets, but you will not be able to migrate x64 binaries to an x86 or an ARM machine.
+    Doing so would require processor emulation, and this is definitely outside the scope of the exodus project.
+    If you find yourself looking for a solution to this problem, then you might want to check out [QEMU](https://www.qemu.org/).
 - **Driver Dependent Libraries** - Unlike some other application bundlers, exodus aims to include all of the required libraries when the bundle is created and to completely isolate the transported binary from the destination machine's system libraries.
     This means that any libraries which are compiled for specific hardware drivers will only work on machines with the same drivers.
     A key example of this is the `libGLX_indirect.so` library which can link to either `libGLX_mesa.so` or `libGLX_nvidia.so` depending on which graphics card drivers are used on a given system.
