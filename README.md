@@ -1,5 +1,5 @@
 <h1 vertical-align="middle">Exodus
-    <a targe="_blank" href="https://twitter.com/home?status=Exodus%20makes%20it%20possible%20to%20transport%20binaries%20between%20Linux%20machines%20without%20needing%20to%20worry%20about%20dependencies%20or%20library%20incompatibilities.%20Very%20cool!%0A%0Ahttps%3A//github.com/intoli/exodus">
+    <a targe="_blank" href="https://twitter.com/home?status=Exodus%20%E2%80%93%20Painless%20relocation%20of%20Linux%20binaries%20without%20containers!%20%40IntoliNow%0A%0Ahttps%3A//github.com/intoli/exodus">
         <img height="26px" src="https://simplesharebuttons.com/images/somacro/twitter.png"
             alt="Tweet"></a>
     <a target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=https%3A//github.com/intoli/exodus">
