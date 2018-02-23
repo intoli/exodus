@@ -120,7 +120,3 @@ def main(args=None, namespace=None):
         logger.error('Fatal error encountered, exiting.')
         logger.error(fatal_error, exc_info=verbose)
         sys.exit(1)
-
-
-if __name__ == '__main__':
-    main()
