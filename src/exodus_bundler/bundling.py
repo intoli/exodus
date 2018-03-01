@@ -96,27 +96,39 @@ def create_unpackaged_bundle(executables, rename=[], ldd='ldd'):
         assert len(executables), 'No executables were specified.'
         assert len(executables) >= len(rename), \
             'More renamed options were included than executables.'
-        # Pad the rename's so that they have the same length for the `zip()` call.
-        rename = rename + [None for i in range(len(executables) - len(rename))]
-        for name, executable in zip(rename, map(resolve_binary, executables)):
+        # Pad the rename's with `True` so that `entry_point` can be specified.
+        entry_points = rename + [True for i in range(len(executables) - len(rename))]
+
+        # Create `File` instances of the executables.
+        executable_files = set(
+            File(executable, entry_point)
+            for (executable, entry_point) in zip(executables, entry_points)
+        )
+
+        for executable_file in executable_files:
             # Make the bundle subdirectories for this executable.
-            binary_name = (name or os.path.basename(executable)).replace(os.sep, '')
-            binary_hash = sha256_hash(executable)
+            binary_name = executable_file.entry_point
+            binary_hash = sha256_hash(executable_file.path)
             bundle_directory = os.path.join(bundles_directory, binary_hash)
             bundle_bin_directory = os.path.join(bundle_directory, 'bin')
             os.makedirs(bundle_bin_directory)
             bundle_lib_directory = os.path.join(bundle_directory, 'lib')
             os.makedirs(bundle_lib_directory)
 
+            # Create `File` instances for all of the library dependencies.
+            dependency_files = set(
+                File(dependency)
+                for dependency in find_all_library_dependencies(ldd, executable_file.path)
+            )
+
             # Copy over the library dependencies and link them.
-            dependencies = find_all_library_dependencies(ldd, executable)
-            for dependency in dependencies:
+            for dependency_file in dependency_files:
                 # Create the `lib/{hash}` library file.
-                dependency_name = os.path.basename(dependency)
-                dependency_hash = sha256_hash(dependency)
+                dependency_name = os.path.basename(dependency_file.path)
+                dependency_hash = sha256_hash(dependency_file.path)
                 dependency_path = os.path.join(lib_directory, dependency_hash)
                 if not os.path.exists(dependency_path):
-                    shutil.copy(dependency, dependency_path)
+                    shutil.copy(dependency_file.path, dependency_path)
 
                 # Create a link to the actual library from inside the bundle lib directory.
                 bundle_dependency_link = os.path.join(bundle_lib_directory, dependency_name)
@@ -133,11 +145,11 @@ def create_unpackaged_bundle(executables, rename=[], ldd='ldd'):
 
             # Copy over the executable.
             bundle_executable_path = os.path.join(bundle_bin_directory, binary_name)
-            shutil.copy(executable, bundle_executable_path)
+            shutil.copy(executable_file.path, bundle_executable_path)
 
             # Construct the launcher.
             linker_candidates = list(filter(lambda candidate: candidate.startswith('ld-'), (
-                os.path.basename(dependency) for dependency in dependencies
+                os.path.basename(dependency_file.path) for dependency_file in dependency_files
             )))
             assert len(linker_candidates) > 0, 'No linker candidates found.'
             assert len(linker_candidates) < 2, 'Multiple linker candidates found.'
