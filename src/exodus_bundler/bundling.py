@@ -259,6 +259,10 @@ class stored_property(object):
 class File(object):
     """Represents a file on disk and provides access to relevant properties and actions.
 
+    Note:
+        The `File` class is tied to the bundling format. For example, the `destination` property
+        will correspond to a path like 'data/{hash}' which is then used in bundling.
+
     Attributes:
         entry_point (str): The name of the bundle entry point for an executable binary (or `None`).
         path (str): The absolute normalized path to the file on disk.
@@ -287,6 +291,12 @@ class File(object):
             self.entry_point = os.path.basename(self.path).replace(os.sep, '')
         else:
             self.entry_point = entry_point or None
+
+    @stored_property
+    def destination(self):
+        """str: The relatie path for the destination of the actual file contents."""
+        data_directory = 'data+x' if self.executable else 'data-x'
+        return os.path.join('.', data_directory, self.hash)
 
     @stored_property
     def executable(self):
