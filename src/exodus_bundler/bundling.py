@@ -292,6 +292,10 @@ class File(object):
         else:
             self.entry_point = entry_point or None
 
+    def __hash__(self):
+        """Computes a hash for the instance unique up to the file path and entry point."""
+        return hash((self.path, self.entry_point))
+
     @stored_property
     def destination(self):
         """str: The relatie path for the destination of the actual file contents."""
@@ -312,7 +316,3 @@ class File(object):
         """str: Computes a hash based on the file content, useful for file deduplication."""
         with open(self.path, 'rb') as f:
             return hashlib.sha256(f.read()).hexdigest()
-
-    def __hash__(self):
-        """Computes a hash for the instance unique up to the file path and entry point."""
-        return hash((self.path, self.entry_point))
