@@ -256,6 +256,17 @@ def sha256_hash(filename):
         return hashlib.sha256(f.read()).hexdigest()
 
 
+class stored_property(object):
+    """Simple decoratator for a class property that will be cached indefinitely."""
+    def __init__(self, function):
+        self.__doc__ = getattr(function, '__doc__')
+        self.function = function
+
+    def __get__(self, instance, type):
+        result = instance.__dict__[self.function.__name__] = self.function(instance)
+        return result
+
+
 class File(object):
     """Represents a file on disk and provides access to relevant properties and actions.
 

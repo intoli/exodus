@@ -13,6 +13,7 @@ from exodus_bundler.bundling import parse_dependencies_from_ldd_output
 from exodus_bundler.bundling import resolve_binary
 from exodus_bundler.bundling import run_ldd
 from exodus_bundler.bundling import sha256_hash
+from exodus_bundler.bundling import stored_property
 
 
 parent_directory = os.path.dirname(os.path.realpath(__file__))
@@ -104,3 +105,18 @@ def test_sha256_hash():
     # Found by executing `sha256sum fizz-buzz`.
     expected_hash = 'd54ab4714215d7822bf490df5cdf49bc3f32b4c85a439b109fc7581355f9d9c5'
     assert sha256_hash(executable) == expected_hash
+
+
+def test_stored_property():
+    class Incrementer(object):
+        def __init__(self):
+            self.i = 0
+
+        @stored_property
+        def next(self):
+            self.i += 1
+            return self.i
+
+    incrementer = Incrementer()
+    for i in range(10):
+        assert incrementer.next == 1, '`Incrementer.next` should not change.'
