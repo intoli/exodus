@@ -47,6 +47,13 @@ def test_detect_elf_binary():
     assert not detect_elf_binary(ldd), 'The `ldd` file should be a shell script.'
 
 
+def test_file_bits():
+    fizz_buzz_file = File(executable)
+    # Can be checked by running `file fizz-buzz`.
+    assert fizz_buzz_file.bits == 32, \
+        'The fizz buzz executable should be 32-bit.'
+
+
 def test_file_linker():
     # Found by running `readelf -l fizz-buzz`.
     expected_linker = '/lib/ld-linux.so.2'
