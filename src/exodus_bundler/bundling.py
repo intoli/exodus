@@ -256,10 +256,37 @@ class stored_property(object):
         return result
 
 
+class Elf(object):
+    """Parses basic attributes from the ELF header of a file.
+
+    Attributes:
+        bits (int): The number of bits for an ELF binary, either 32 or 64.
+    """
+    def __init__(self, path):
+        """Constructs the `Elf` instance.
+
+        Args:
+            path (str): The full path to the ELF binary.
+        """
+        if not os.path.exists(path):
+            raise MissingFileError('The "%s" file was not found.' % path)
+
+        with open(path, 'rb') as f:
+            # Make sure that this is actually an ELF binary.
+            first_four_bytes = f.read(4)
+            if first_four_bytes != b'\x7fELF':
+                raise InvalidElfBinaryError('The "%s" file is not a binary ELF file.' % path)
+
+            # Determine whether this is a 32-bit or 64-bit file.
+            format_byte = f.read(1)
+            self.bits = {b'\x01': 32, b'\x02': 64}[format_byte]
+
+
 class File(object):
     """Represents a file on disk and provides access to relevant properties and actions.
 
     Attributes:
+        elf (Elf): A corresponding `Elf` object, or `None` if it is not an ELF formatted file.
         entry_point (str): The name of the bundle entry point for an executable binary (or `None`).
         path (str): The absolute normalized path to the file on disk.
     """
@@ -288,19 +315,11 @@ class File(object):
         else:
             self.entry_point = entry_point or None
 
-    @stored_property
-    def bits(self):
-        """int: The number of bits for an ELF binary, either 32 or 64."""
-        assert self.elf, 'Must be an ELF binary to access the number of bits.'
-        with open(self.path, 'rb') as f:
-            f.seek(4)
-            byte = f.read(1)
-        return {b'\x01': 32, b'\x02': 64}[byte]
-
-    @stored_property
-    def elf(self):
-        """bool: Determines whether a file is a file is an ELF binary."""
-        return detect_elf_binary(self.path)
+        # Parse an `Elf` object from the file.
+        try:
+            self.elf = Elf(path)
+        except InvalidElfBinaryError:
+            self.elf = None
 
     @stored_property
     def hash(self):
