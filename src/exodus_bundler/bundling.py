@@ -276,8 +276,8 @@ class File(object):
 
         Args:
             path (str): Can be either an absolute path, relative path, or a binary name in `PATH`.
-            entry_point (string): The name of the bundle entry point for an executable. If `True`,
-                the executable's basename will be used.
+            entry_point (string, optional): The name of the bundle entry point for an executable.
+                If `True`, the executable's basename will be used.
         """
         # Find the full path to the file.
         if entry_point:
