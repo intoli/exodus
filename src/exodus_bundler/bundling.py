@@ -296,6 +296,29 @@ class File(object):
         """Computes a hash for the instance unique up to the file path and entry point."""
         return hash((self.path, self.entry_point))
 
+    def copy(self, root_directory):
+        """Copies the file to a location based on its `destination` property.
+
+        Args:
+            root_directory (str): The root that the `destination` will be joined with.
+        Returns:
+            str: The normalized and absolute destination path.
+        """
+        full_destination = os.path.join(root_directory, self.destination)
+        full_destination = os.path.normpath(os.path.abspath(full_destination))
+
+        # The filenames are based on content hashes, so there's no need to copy it twice.
+        if os.path.exists(full_destination):
+            return full_destination
+
+        parent_directory = os.path.dirname(full_destination)
+        if not os.path.exists(parent_directory):
+            os.makedirs(parent_directory)
+
+        shutil.copy(self.path, full_destination)
+
+        return full_destination
+
     @stored_property
     def destination(self):
         """str: The relatie path for the destination of the actual file contents."""
