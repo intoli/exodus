@@ -299,6 +299,11 @@ class File(object):
         else:
             self.entry_point = entry_point or None
 
+    @stored_property
+    def hash(self):
+        """str: Computes a hash based on the file content, useful for file deduplication."""
+        return sha256_hash(self.path)
+
     def __hash__(self):
         """Computes a hash for the instance unique up to the file path and entry point."""
         return hash((self.path, self.entry_point))
