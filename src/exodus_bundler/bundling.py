@@ -242,3 +242,40 @@ def sha256_hash(filename):
 
     with open(filename, 'rb') as f:
         return hashlib.sha256(f.read()).hexdigest()
+
+
+class File(object):
+    """Represents a file on disk and provides access to relevant properties and actions.
+
+    Attributes:
+        entry_point (str): The name of the bundle entry point for an executable binary (or `None`).
+        path (str): The absolute normalized path to the file on disk.
+    """
+
+    def __init__(self, path, entry_point=None):
+        """Constructor for the `File` class.
+
+        Note:
+            A `MissingFileError` will be thrown if a matching file cannot be found.
+
+        Args:
+            path (str): Can be either an absolute path, relative path, or a binary name in `PATH`.
+            entry_point (string): The name of the bundle entry point for an executable. If `True`,
+                the executable's basename will be used.
+        """
+        # Find the full path to the file.
+        if entry_point:
+            path = resolve_binary(path)
+        if not os.path.exists(path):
+            raise MissingFileError('The "%s" file was not found.' % path)
+        self.path = os.path.normpath(os.path.abspath(path))
+
+        # Set the entry point for the file.
+        if entry_point is True:
+            self.entry_point = os.path.basename(self.path).replace(os.sep, '')
+        else:
+            self.entry_point = entry_point or None
+
+    def __hash__(self):
+        """Computes a hash for the instance unique up to the file path and entry point."""
+        return hash((self.path, self.entry_point))
