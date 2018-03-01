@@ -289,6 +289,15 @@ class File(object):
             self.entry_point = entry_point or None
 
     @stored_property
+    def bits(self):
+        """int: The number of bits for an ELF binary, either 32 or 64."""
+        assert self.elf, 'Must be an ELF binary to access the number of bits.'
+        with open(self.path, 'rb') as f:
+            f.seek(4)
+            byte = f.read(1)
+        return {b'\x01': 32, b'\x02': 64}[byte]
+
+    @stored_property
     def elf(self):
         """bool: Determines whether a file is a file is an ELF binary."""
         return detect_elf_binary(self.path)
