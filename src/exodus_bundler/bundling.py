@@ -96,27 +96,37 @@ def create_unpackaged_bundle(executables, rename=[], ldd='ldd'):
         assert len(executables), 'No executables were specified.'
         assert len(executables) >= len(rename), \
             'More renamed options were included than executables.'
-        # Pad the rename's so that they have the same length for the `zip()` call.
-        rename = rename + [None for i in range(len(executables) - len(rename))]
-        for name, executable in zip(rename, map(resolve_binary, executables)):
+        # Pad the rename's with `True` so that `entry_point` can be specified.
+        entry_points = rename + [True for i in range(len(executables) - len(rename))]
+
+        # Create `File` instances of the executables.
+        executable_files = set(
+            File(executable, entry_point)
+            for (executable, entry_point) in zip(executables, entry_points)
+        )
+
+        for executable_file in executable_files:
             # Make the bundle subdirectories for this executable.
-            binary_name = (name or os.path.basename(executable)).replace(os.sep, '')
-            binary_hash = sha256_hash(executable)
-            bundle_directory = os.path.join(bundles_directory, binary_hash)
+            binary_name = executable_file.entry_point
+            bundle_directory = os.path.join(bundles_directory, executable_file.hash)
             bundle_bin_directory = os.path.join(bundle_directory, 'bin')
             os.makedirs(bundle_bin_directory)
             bundle_lib_directory = os.path.join(bundle_directory, 'lib')
             os.makedirs(bundle_lib_directory)
 
+            # Create `File` instances for all of the library dependencies.
+            dependency_files = set(
+                File(dependency)
+                for dependency in find_all_library_dependencies(ldd, executable_file.path)
+            )
+
             # Copy over the library dependencies and link them.
-            dependencies = find_all_library_dependencies(ldd, executable)
-            for dependency in dependencies:
+            for dependency_file in dependency_files:
                 # Create the `lib/{hash}` library file.
-                dependency_name = os.path.basename(dependency)
-                dependency_hash = sha256_hash(dependency)
-                dependency_path = os.path.join(lib_directory, dependency_hash)
+                dependency_name = os.path.basename(dependency_file.path)
+                dependency_path = os.path.join(lib_directory, dependency_file.hash)
                 if not os.path.exists(dependency_path):
-                    shutil.copy(dependency, dependency_path)
+                    shutil.copy(dependency_file.path, dependency_path)
 
                 # Create a link to the actual library from inside the bundle lib directory.
                 bundle_dependency_link = os.path.join(bundle_lib_directory, dependency_name)
@@ -133,11 +143,11 @@ def create_unpackaged_bundle(executables, rename=[], ldd='ldd'):
 
             # Copy over the executable.
             bundle_executable_path = os.path.join(bundle_bin_directory, binary_name)
-            shutil.copy(executable, bundle_executable_path)
+            shutil.copy(executable_file.path, bundle_executable_path)
 
             # Construct the launcher.
             linker_candidates = list(filter(lambda candidate: candidate.startswith('ld-'), (
-                os.path.basename(dependency) for dependency in dependencies
+                os.path.basename(dependency_file.path) for dependency_file in dependency_files
             )))
             assert len(linker_candidates) > 0, 'No linker candidates found.'
             assert len(linker_candidates) < 2, 'Multiple linker candidates found.'
@@ -235,10 +245,60 @@ def run_ldd(ldd, binary):
     return stdout.decode('utf-8').split('\n') + stderr.decode('utf-8').split('\n')
 
 
-def sha256_hash(filename):
-    """Produces an SHA-256 hash of a file."""
-    if not os.path.exists(filename):
-        raise MissingFileError('The "%s" file was not found.' % filename)
+class stored_property(object):
+    """Simple decoratator for a class property that will be cached indefinitely."""
+    def __init__(self, function):
+        self.__doc__ = getattr(function, '__doc__')
+        self.function = function
 
-    with open(filename, 'rb') as f:
-        return hashlib.sha256(f.read()).hexdigest()
+    def __get__(self, instance, type):
+        result = instance.__dict__[self.function.__name__] = self.function(instance)
+        return result
+
+
+class File(object):
+    """Represents a file on disk and provides access to relevant properties and actions.
+
+    Attributes:
+        entry_point (str): The name of the bundle entry point for an executable binary (or `None`).
+        path (str): The absolute normalized path to the file on disk.
+    """
+
+    def __init__(self, path, entry_point=None):
+        """Constructor for the `File` class.
+
+        Note:
+            A `MissingFileError` will be thrown if a matching file cannot be found.
+
+        Args:
+            path (str): Can be either an absolute path, relative path, or a binary name in `PATH`.
+            entry_point (string): The name of the bundle entry point for an executable. If `True`,
+                the executable's basename will be used.
+        """
+        # Find the full path to the file.
+        if entry_point:
+            path = resolve_binary(path)
+        if not os.path.exists(path):
+            raise MissingFileError('The "%s" file was not found.' % path)
+        self.path = os.path.normpath(os.path.abspath(path))
+
+        # Set the entry point for the file.
+        if entry_point is True:
+            self.entry_point = os.path.basename(self.path).replace(os.sep, '')
+        else:
+            self.entry_point = entry_point or None
+
+    @stored_property
+    def elf(self):
+        """bool: Determines whether a file is a file is an ELF binary."""
+        return detect_elf_binary(self.path)
+
+    @stored_property
+    def hash(self):
+        """str: Computes a hash based on the file content, useful for file deduplication."""
+        with open(self.path, 'rb') as f:
+            return hashlib.sha256(f.read()).hexdigest()
+
+    def __hash__(self):
+        """Computes a hash for the instance unique up to the file path and entry point."""
+        return hash((self.path, self.entry_point))

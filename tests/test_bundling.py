@@ -5,6 +5,7 @@ from subprocess import Popen
 
 import pytest
 
+from exodus_bundler.bundling import File
 from exodus_bundler.bundling import create_unpackaged_bundle
 from exodus_bundler.bundling import detect_elf_binary
 from exodus_bundler.bundling import find_all_library_dependencies
@@ -12,7 +13,7 @@ from exodus_bundler.bundling import find_direct_library_dependencies
 from exodus_bundler.bundling import parse_dependencies_from_ldd_output
 from exodus_bundler.bundling import resolve_binary
 from exodus_bundler.bundling import run_ldd
-from exodus_bundler.bundling import sha256_hash
+from exodus_bundler.bundling import stored_property
 
 
 parent_directory = os.path.dirname(os.path.realpath(__file__))
@@ -44,6 +45,25 @@ def test_create_unpackaged_bundle():
 def test_detect_elf_binary():
     assert detect_elf_binary(executable), 'The `fizz-buzz` file should be an ELF binary.'
     assert not detect_elf_binary(ldd), 'The `ldd` file should be a shell script.'
+
+
+def test_file_elf():
+    fizz_buzz_file = File(executable)
+    arch_file = File(os.path.join(ldd_output_directory, 'htop-arch.txt'))
+    assert fizz_buzz_file.elf, 'The fizz buzz executable should be an ELF binary.'
+    assert not arch_file.elf, 'The arch text file should not be an ELF binary.'
+
+
+def test_file_hash():
+    amazon_file = File(os.path.join(ldd_output_directory, 'htop-amazon-linux.txt'))
+    arch_file = File(os.path.join(ldd_output_directory, 'htop-arch.txt'))
+    assert amazon_file.hash != arch_file.hash, 'The hashes should differ.'
+    assert len(amazon_file.hash) == len(arch_file.hash) == 64, \
+        'The hashes should have a consistent length of 64 characters.'
+
+    # Found by executing `sha256sum fizz-buzz`.
+    expected_hash = 'd54ab4714215d7822bf490df5cdf49bc3f32b4c85a439b109fc7581355f9d9c5'
+    assert File(executable).hash == expected_hash, 'Hashes should match.'
 
 
 def test_find_all_library_dependencies():
@@ -100,7 +120,16 @@ def test_run_ldd():
         '"libc" was not found in the output of "ldd" for the executable.'
 
 
-def test_sha256_hash():
-    # Found by executing `sha256sum fizz-buzz`.
-    expected_hash = 'd54ab4714215d7822bf490df5cdf49bc3f32b4c85a439b109fc7581355f9d9c5'
-    assert sha256_hash(executable) == expected_hash
+def test_stored_property():
+    class Incrementer(object):
+        def __init__(self):
+            self.i = 0
+
+        @stored_property
+        def next(self):
+            self.i += 1
+            return self.i
+
+    incrementer = Incrementer()
+    for i in range(10):
+        assert incrementer.next == 1, '`Incrementer.next` should not change.'
