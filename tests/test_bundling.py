@@ -47,6 +47,15 @@ def test_detect_elf_binary():
     assert not detect_elf_binary(ldd), 'The `ldd` file should be a shell script.'
 
 
+def test_file_destination():
+    arch_file = File(os.path.join(ldd_output_directory, 'htop-arch.txt'))
+    arch_directory = os.path.dirname(arch_file.destination)
+    fizz_buzz_file = File(executable)
+    fizz_buzz_directory = os.path.dirname(fizz_buzz_file.destination)
+    assert arch_directory != fizz_buzz_directory, \
+        'Executable and non-executable files should not be written to the same directory.'
+
+
 def test_file_executable():
     fizz_buzz_file = File(executable)
     arch_file = File(os.path.join(ldd_output_directory, 'htop-arch.txt'))
