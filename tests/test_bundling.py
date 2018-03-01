@@ -47,6 +47,13 @@ def test_detect_elf_binary():
     assert not detect_elf_binary(ldd), 'The `ldd` file should be a shell script.'
 
 
+def test_file_executable():
+    fizz_buzz_file = File(executable)
+    arch_file = File(os.path.join(ldd_output_directory, 'htop-arch.txt'))
+    assert fizz_buzz_file.executable, 'The fizz buzz executable should be executable.'
+    assert not arch_file.executable, 'The arch text file should not be executable.'
+
+
 def test_file_elf():
     fizz_buzz_file = File(executable)
     arch_file = File(os.path.join(ldd_output_directory, 'htop-arch.txt'))
