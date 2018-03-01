@@ -108,8 +108,7 @@ def create_unpackaged_bundle(executables, rename=[], ldd='ldd'):
         for executable_file in executable_files:
             # Make the bundle subdirectories for this executable.
             binary_name = executable_file.entry_point
-            binary_hash = sha256_hash(executable_file.path)
-            bundle_directory = os.path.join(bundles_directory, binary_hash)
+            bundle_directory = os.path.join(bundles_directory, executable_file.hash)
             bundle_bin_directory = os.path.join(bundle_directory, 'bin')
             os.makedirs(bundle_bin_directory)
             bundle_lib_directory = os.path.join(bundle_directory, 'lib')
@@ -125,8 +124,7 @@ def create_unpackaged_bundle(executables, rename=[], ldd='ldd'):
             for dependency_file in dependency_files:
                 # Create the `lib/{hash}` library file.
                 dependency_name = os.path.basename(dependency_file.path)
-                dependency_hash = sha256_hash(dependency_file.path)
-                dependency_path = os.path.join(lib_directory, dependency_hash)
+                dependency_path = os.path.join(lib_directory, dependency_file.hash)
                 if not os.path.exists(dependency_path):
                     shutil.copy(dependency_file.path, dependency_path)
 
