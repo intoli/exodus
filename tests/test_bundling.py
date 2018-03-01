@@ -5,6 +5,7 @@ from subprocess import Popen
 
 import pytest
 
+from exodus_bundler.bundling import File
 from exodus_bundler.bundling import create_unpackaged_bundle
 from exodus_bundler.bundling import detect_elf_binary
 from exodus_bundler.bundling import find_all_library_dependencies
@@ -45,6 +46,14 @@ def test_create_unpackaged_bundle():
 def test_detect_elf_binary():
     assert detect_elf_binary(executable), 'The `fizz-buzz` file should be an ELF binary.'
     assert not detect_elf_binary(ldd), 'The `ldd` file should be a shell script.'
+
+
+def test_file_hash():
+    amazon_file = File(os.path.join(ldd_output_directory, 'htop-amazon-linux.txt'))
+    arch_file = File(os.path.join(ldd_output_directory, 'htop-arch.txt'))
+    assert amazon_file.hash != arch_file.hash, 'The hashes should differ.'
+    assert len(amazon_file.hash) == len(arch_file.hash) == 64, \
+        'The hashes should have a consistent length of 64 characters.'
 
 
 def test_find_all_library_dependencies():
