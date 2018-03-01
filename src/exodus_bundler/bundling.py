@@ -298,6 +298,11 @@ class File(object):
             self.entry_point = entry_point or None
 
     @stored_property
+    def elf(self):
+        """bool: Determines whether a file is a file is an ELF binary."""
+        return detect_elf_binary(self.path)
+
+    @stored_property
     def hash(self):
         """str: Computes a hash based on the file content, useful for file deduplication."""
         return sha256_hash(self.path)

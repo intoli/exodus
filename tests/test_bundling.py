@@ -48,6 +48,13 @@ def test_detect_elf_binary():
     assert not detect_elf_binary(ldd), 'The `ldd` file should be a shell script.'
 
 
+def test_file_elf():
+    fizz_buzz_file = File(executable)
+    arch_file = File(os.path.join(ldd_output_directory, 'htop-arch.txt'))
+    assert fizz_buzz_file.elf, 'The fizz buzz executable should be an ELF binary.'
+    assert not arch_file.elf, 'The arch text file should not be an ELF binary.'
+
+
 def test_file_hash():
     amazon_file = File(os.path.join(ldd_output_directory, 'htop-amazon-linux.txt'))
     arch_file = File(os.path.join(ldd_output_directory, 'htop-arch.txt'))
