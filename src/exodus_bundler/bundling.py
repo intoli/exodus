@@ -245,15 +245,6 @@ def run_ldd(ldd, binary):
     return stdout.decode('utf-8').split('\n') + stderr.decode('utf-8').split('\n')
 
 
-def sha256_hash(filename):
-    """Produces an SHA-256 hash of a file."""
-    if not os.path.exists(filename):
-        raise MissingFileError('The "%s" file was not found.' % filename)
-
-    with open(filename, 'rb') as f:
-        return hashlib.sha256(f.read()).hexdigest()
-
-
 class stored_property(object):
     """Simple decoratator for a class property that will be cached indefinitely."""
     def __init__(self, function):
@@ -305,7 +296,8 @@ class File(object):
     @stored_property
     def hash(self):
         """str: Computes a hash based on the file content, useful for file deduplication."""
-        return sha256_hash(self.path)
+        with open(self.path, 'rb') as f:
+            return hashlib.sha256(f.read()).hexdigest()
 
     def __hash__(self):
         """Computes a hash for the instance unique up to the file path and entry point."""
