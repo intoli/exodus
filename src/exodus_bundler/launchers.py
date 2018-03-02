@@ -60,10 +60,16 @@ def compile_musl(code):
     return compile_helper(code, [musl])
 
 
-def construct_bash_launcher(linker, binary):
-    return render_template_file('launcher.sh', linker=linker, binary=binary)
+def construct_bash_launcher(linker, library_path, executable):
+    linker_dirname, linker_basename = os.path.split(linker)
+    return render_template_file('launcher.sh', linker_basename=linker_basename,
+                                linker_dirname=linker_dirname, library_path=library_path,
+                                executable=executable)
 
 
-def construct_binary_launcher(linker, binary):
-    code = render_template_file('launcher.c', linker=linker, binary=binary)
+def construct_binary_launcher(linker, library_path, executable):
+    linker_dirname, linker_basename = os.path.split(linker)
+    code = render_template_file('launcher.c', linker_basename=linker_basename,
+                                linker_dirname=linker_dirname, library_path=library_path,
+                                executable=executable)
     return compile(code)

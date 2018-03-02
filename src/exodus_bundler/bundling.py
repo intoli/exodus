@@ -14,7 +14,6 @@ from subprocess import PIPE
 from subprocess import Popen
 
 from exodus_bundler.errors import InvalidElfBinaryError
-from exodus_bundler.errors import LibraryConflictError
 from exodus_bundler.errors import MissingFileError
 from exodus_bundler.launchers import CompilerNotFoundError
 from exodus_bundler.launchers import construct_bash_launcher
@@ -93,87 +92,24 @@ def create_bundle(executables, output, tarball=False, rename=[], chroot=None):
 
 def create_unpackaged_bundle(executables, rename=[], chroot=None):
     """Creates a temporary directory containing the unpackaged contents of the bundle."""
-    root_directory = tempfile.mkdtemp(prefix='exodus-bundle-')
+    bundle = Bundle(chroot=chroot, working_directory=True)
     try:
-        # Make the top-level bundle directories.
-        bin_directory = os.path.join(root_directory, 'bin')
-        os.makedirs(bin_directory)
-        lib_directory = os.path.join(root_directory, 'lib')
-        os.makedirs(lib_directory)
-        bundles_directory = os.path.join(root_directory, 'bundles')
-
-        # Loop through and package each executable.
+        # Sanitize the inputs.
         assert len(executables), 'No executables were specified.'
         assert len(executables) >= len(rename), \
             'More renamed options were included than executables.'
         # Pad the rename's with `True` so that `entry_point` can be specified.
         entry_points = rename + [True for i in range(len(executables) - len(rename))]
 
-        # Create `File` instances of the executables.
-        executable_files = set(
-            File(executable, entry_point, chroot=chroot)
-            for (executable, entry_point) in zip(executables, entry_points)
-        )
+        # Populate the bundle with files.
+        for (executable, entry_point) in zip(executables, entry_points):
+            bundle.add_file(executable, entry_point=entry_point)
 
-        for executable_file in executable_files:
-            # Make the bundle subdirectories for this executable.
-            binary_name = executable_file.entry_point
-            bundle_directory = os.path.join(bundles_directory, executable_file.hash)
-            bundle_bin_directory = os.path.join(bundle_directory, 'bin')
-            os.makedirs(bundle_bin_directory)
-            bundle_lib_directory = os.path.join(bundle_directory, 'lib')
-            os.makedirs(bundle_lib_directory)
+        bundle.create_bundle()
 
-            # Copy over the library dependencies and link them.
-            for dependency_file in executable_file.elf.dependencies:
-                # Create the `lib/{hash}` library file.
-                dependency_name = os.path.basename(dependency_file.path)
-                dependency_path = os.path.join(lib_directory, dependency_file.hash)
-                if not os.path.exists(dependency_path):
-                    shutil.copy(dependency_file.path, dependency_path)
-
-                # Create a link to the actual library from inside the bundle lib directory.
-                bundle_dependency_link = os.path.join(bundle_lib_directory, dependency_name)
-                relative_dependency_path = os.path.relpath(dependency_path, bundle_lib_directory)
-                if not os.path.exists(bundle_dependency_link):
-                    os.symlink(relative_dependency_path, bundle_dependency_link)
-                else:
-                    link_destination = os.readlink(bundle_dependency_link)
-                    link_destination = os.path.join(bundle_lib_directory, link_destination)
-                    # This is only a problem if the duplicate libraries have different content.
-                    if os.path.normpath(link_destination) != os.path.normpath(dependency_path):
-                        raise LibraryConflictError(
-                            'A library called "%s" was linked more than once.' % dependency_name)
-
-            # Copy over the executable.
-            bundle_executable_path = os.path.join(bundle_bin_directory, binary_name)
-            shutil.copy(executable_file.path, bundle_executable_path)
-
-            # Construct the launcher.
-            linker = os.path.basename(executable_file.elf.linker)
-            # Try a c launcher first and fallback.
-            try:
-                launcher_path = '%s-launcher' % bundle_executable_path
-                launcher_content = construct_binary_launcher(linker=linker, binary=binary_name)
-                with open(launcher_path, 'wb') as f:
-                    f.write(launcher_content)
-            except CompilerNotFoundError:
-                logger.warn((
-                    'Installing either the musl or diet C libraries will result in more efficient '
-                    'launchers (currently using bash fallbacks instead).'
-                ))
-                launcher_path = '%s-launcher.sh' % bundle_executable_path
-                launcher_content = construct_bash_launcher(linker=linker, binary=binary_name)
-                with open(launcher_path, 'w') as f:
-                    f.write(launcher_content)
-            shutil.copymode(bundle_executable_path, launcher_path)
-            executable_link = os.path.join(bin_directory, binary_name)
-            relative_launcher_path = os.path.relpath(launcher_path, bin_directory)
-            os.symlink(relative_launcher_path, executable_link)
-
-        return root_directory
+        return bundle.working_directory
     except:  # noqa: E722
-        shutil.rmtree(root_directory)
+        bundle.delete_working_directory()
         raise
 
 
@@ -250,6 +186,7 @@ class Elf(object):
         chroot (str): The root directory used when invoking the linker (or `None`).
         linker (str): The linker/interpreter specified in the program header.
         path (str): The path to the file.
+        type (str): The binary type, one of 'relocatable', 'executable', 'shared', or 'core'.
     """
     def __init__(self, path, chroot=None):
         """Constructs the `Elf` instance.
@@ -281,6 +218,11 @@ class Elf(object):
 
             def hex(bytes):
                 return bytes_to_int(bytes, byteorder=byteorder)
+
+            # Determine the type of the binary.
+            f.seek(hex(b'\x10'))
+            e_type = hex(f.read(2))
+            self.type = {1: 'relocatable', 2: 'executable', 3: 'shared', 4: 'core'}[e_type]
 
             # Find the program header offset.
             e_phoff_start = {32: hex(b'\x1c'), 64: hex(b'\x20')}[self.bits]
@@ -367,7 +309,7 @@ class Elf(object):
         # extract the real path from the trace output. Even if it were here twice, it would be
         # deduplicated though the use of a set.
         filenames = parse_dependencies_from_ldd_output(combined_output) + [linker]
-        return set(File(filename, chroot=self.chroot) for filename in filenames)
+        return set(File(filename, chroot=self.chroot, library=True) for filename in filenames)
 
     @stored_property
     def dependencies(self):
@@ -392,13 +334,19 @@ class Elf(object):
 class File(object):
     """Represents a file on disk and provides access to relevant properties and actions.
 
+    Note:
+        The `File` class is tied to the bundling format. For example, the `destination` property
+        will correspond to a path like 'data/{hash}' which is then used in bundling.
+
     Attributes:
+        chroot (str): A location to treat as the root during dependency linking (or `None`).
         elf (Elf): A corresponding `Elf` object, or `None` if it is not an ELF formatted file.
         entry_point (str): The name of the bundle entry point for an executable binary (or `None`).
+        library (bool): Specifies that this file is explicitly a shared library.
         path (str): The absolute normalized path to the file on disk.
     """
 
-    def __init__(self, path, entry_point=None, chroot=None):
+    def __init__(self, path, entry_point=None, chroot=None, library=False):
         """Constructor for the `File` class.
 
         Note:
@@ -406,8 +354,8 @@ class File(object):
 
         Args:
             path (str): Can be either an absolute path, relative path, or a binary name in `PATH`.
-            entry_point (string): The name of the bundle entry point for an executable. If `True`,
-                the executable's basename will be used.
+            entry_point (string, optional): The name of the bundle entry point for an executable.
+                If `True`, the executable's basename will be used.
             chroot (str, optional): If specified, all absolute paths will be treated as being
                 relative to this root (mainly useful for testing).
         """
@@ -429,14 +377,147 @@ class File(object):
             self.elf = Elf(path, chroot=chroot)
         except InvalidElfBinaryError:
             self.elf = None
+
         self.chroot = chroot
+        self.library = library
 
     def __eq__(self, other):
         return isinstance(other, File) and self.path == self.path and \
             self.entry_point == self.entry_point
 
+    def __hash__(self):
+        """Computes a hash for the instance unique up to the file path and entry point."""
+        return hash((self.path, self.entry_point))
+
     def __repr__(self):
         return '<File(path="%s")>' % self.path
+
+    def copy(self, working_directory):
+        """Copies the file to a location based on its `destination` property.
+
+        Args:
+            working_directory (str): The root that the `destination` will be joined with.
+        Returns:
+            str: The normalized and absolute destination path.
+        """
+        full_destination = os.path.join(working_directory, self.destination)
+        full_destination = os.path.normpath(os.path.abspath(full_destination))
+
+        # The filenames are based on content hashes, so there's no need to copy it twice.
+        if os.path.exists(full_destination):
+            return full_destination
+
+        parent_directory = os.path.dirname(full_destination)
+        if not os.path.exists(parent_directory):
+            os.makedirs(parent_directory)
+
+        shutil.copy(self.path, full_destination)
+
+        return full_destination
+
+    def create_launcher(self, working_directory, bundle_root):
+        """Creates a launcher at `source` for `destination`.
+
+        Note:
+            If an `entry_point` has been specified, it will also be created.
+        Args:
+            working_directory (str): The root that `destination` will be joined with.
+            bundle_root (str): The root that `source` will be joined with.
+        Returns:
+            str: The normalized and absolute path to the launcher.
+        """
+        destination_path = os.path.join(working_directory, self.destination)
+        source_path = os.path.join(bundle_root, self.source)
+
+        source_parent = os.path.dirname(source_path)
+        if not os.path.exists(source_parent):
+            os.makedirs(source_parent)
+        relative_destination_path = os.path.relpath(destination_path, source_parent)
+        executable = relative_destination_path
+
+        linker_file = File(self.elf.linker, chroot=self.chroot, library=True)
+        relative_linker_path = os.path.relpath(linker_file.path, source_parent)
+        linker = relative_linker_path
+
+        ld_library_path = '/lib64:/usr/lib64:/lib/:/usr/lib:/lib32/:/usr/lib32/:'
+        ld_library_path += os.environ.get('LD_LIBRARY_PATH', '')
+        relative_library_paths = []
+        for directory in ld_library_path.split(':'):
+            if not len(directory):
+                continue
+
+            # Get the actual absolute path for the library directory.
+            directory = os.path.normpath(os.path.abspath(directory))
+            if self.chroot:
+                directory = os.path.join(self.chroot, os.path.relpath(directory, '/'))
+
+            # Convert it into a path relative to the launcher/source.
+            relative_library_path = os.path.relpath(directory, source_parent)
+            relative_library_paths.append(relative_library_path)
+        library_path = ':'.join(relative_library_paths)
+
+        # Try a c launcher first and fallback.
+        try:
+            launcher_content = construct_binary_launcher(
+                linker=linker, library_path=library_path, executable=executable)
+            with open(source_path, 'wb') as f:
+                f.write(launcher_content)
+        except CompilerNotFoundError:
+            logger.warn((
+                'Installing either the musl or diet C libraries will result in more efficient '
+                'launchers (currently using bash fallbacks instead).'
+            ))
+            launcher_content = construct_bash_launcher(
+                linker=linker, library_path=library_path, executable=executable)
+            with open(source_path, 'w') as f:
+                f.write(launcher_content)
+        shutil.copymode(self.path, source_path)
+
+        # Create a symlink in `./bin/` if an entry point is specified.
+        if self.entry_point:
+            bin_directory = os.path.join(working_directory, 'bin')
+            if not os.path.exists(bin_directory):
+                os.makedirs(bin_directory)
+            entry_point_path = os.path.join(bin_directory, self.entry_point)
+            relative_destination_path = os.path.relpath(source_path, bin_directory)
+            os.symlink(relative_destination_path, entry_point_path)
+
+        return os.path.normpath(os.path.abspath(source_path))
+
+    def symlink(self, working_directory, bundle_root):
+        """Creates a relative symlink from the `source` to the `destination`.
+
+        Args:
+            working_directory (str): The root that `destination` will be joined with.
+            bundle_root (str): The root that `source` will be joined with.
+        Returns:
+            str: The normalized and absolute path to the symlink.
+        """
+        destination_path = os.path.join(working_directory, self.destination)
+        source_path = os.path.join(bundle_root, self.source)
+
+        source_parent = os.path.dirname(source_path)
+        if not os.path.exists(source_parent):
+            os.makedirs(source_parent)
+        relative_destination_path = os.path.relpath(destination_path, source_parent)
+        os.symlink(relative_destination_path, source_path)
+
+        return os.path.normpath(os.path.abspath(source_path))
+
+    @stored_property
+    def destination(self):
+        """str: The relative path for the destination of the actual file contents."""
+        data_directory = 'data+x' if self.executable else 'data-x'
+        return os.path.join('.', data_directory, self.hash)
+
+    @stored_property
+    def executable(self):
+        return os.access(self.path, os.X_OK)
+
+    @stored_property
+    def elf(self):
+        """bool: Determines whether a file is a file is an ELF binary."""
+        return detect_elf_binary(self.path)
 
     @stored_property
     def hash(self):
@@ -444,6 +525,108 @@ class File(object):
         with open(self.path, 'rb') as f:
             return hashlib.sha256(f.read()).hexdigest()
 
-    def __hash__(self):
-        """Computes a hash for the instance unique up to the file path and entry point."""
-        return hash((self.path, self.entry_point))
+    @stored_property
+    def requires_launcher(self):
+        """bool: Whether a launcher is necessary for this file."""
+        # This is unfortunately a heuristic approach because many executables are compiled
+        # as shared libraries, and many mostly-libraries are executable (*e.g.* glibc).
+
+        # The easy ones.
+        if self.library or not self.elf or not self.elf.linker:
+            return False
+        if self.elf.type == 'executable':
+            return True
+        if self.entry_point:
+            return True
+
+        # These will hopefully do more good than harm.
+        bin_directories = ['/bin/', '/bin32/', '/bin64/']
+        lib_directories = ['/lib/', '/lib32/', '/lib64/']
+        in_bin_directory = any(directory in self.path for directory in bin_directories)
+        in_lib_directory = any(directory in self.path for directory in lib_directories)
+        if in_bin_directory and not in_lib_directory:
+            return True
+        if in_lib_directory and not in_bin_directory:
+            return False
+
+        # This is arbitrary, but it's more likely that people will pipe in library dependencies
+        # than executables without entry points. There will clearly be exceptions.
+        return False
+
+    @stored_property
+    def source(self):
+        """str: The relative path for the source of the actual file contents."""
+        return os.path.relpath(self.path, '/')
+
+
+class Bundle(object):
+    """A collection of files to be included in a bundle and utilities for creating bundles.
+
+    Attributes:
+        chroot (str): The root directory used when invoking the linker (or `None` for `/`).
+        files (:obj:`list` of :obj:`File`): The files to be included in the bundle.
+        working_directory (str): The root directory where the bundles will be written and packaged.
+    """
+    def __init__(self, working_directory=None, chroot=None):
+        """Constructor for the `Bundle` class.
+
+        Args:
+            working_directory (string, optional): The location where the bundle will be created on
+                disk. A temporary directory will be constructed if specified as `True`. If left as
+                `None`, some methods and properties will raise errors.
+            chroot (str, optional): If specified, all absolute paths will be treated as being
+                relative to this root (mainly useful for testing).
+        """
+        self.working_directory = working_directory
+        if working_directory is True:
+            self.working_directory = tempfile.mkdtemp(prefix='exodus-bundle-')
+        self.chroot = chroot
+        self.files = set()
+
+    def add_file(self, path, entry_point=None):
+        """Adds an additional file to the bundle.
+
+        Note:
+            All of the file's dependencies will additionally be pulled into the bundle if the file
+            corresponds to a an ELF binary. This is true regardless of whether or not an entry point
+            is specified for the binary.
+
+        Args:
+            path (str): Can be either an absolute path, relative path, or a binary name in `PATH`.
+            entry_point (string, optional): The name of the bundle entry point for an executable.
+                If `True`, the executable's basename will be used.
+        """
+        file = File(path, entry_point=entry_point, chroot=self.chroot)
+        self.files.add(file)
+        if file.elf:
+            self.files |= file.elf.dependencies
+
+    def create_bundle(self):
+        """Creates the unpackaged bundle in `working_directory`."""
+        for file in self.files:
+            # Copy over the actual file.
+            file.copy(self.working_directory)
+
+            if file.requires_launcher:
+                file.create_launcher(working_directory=self.working_directory,
+                                     bundle_root=self.bundle_root)
+            else:
+                file.symlink(working_directory=self.working_directory, bundle_root=self.bundle_root)
+
+    def delete_working_directory(self):
+        """Recursively deletes the working directory."""
+        shutil.rmtree(self.working_directory)
+        self.working_directory = None
+
+    @property
+    def bundle_root(self):
+        """str: The root directory of the bundle where the original file structure is mirrored."""
+        path = os.path.join(self.working_directory, 'bundles', self.hash)
+        return os.path.normpath(os.path.abspath(path))
+
+    @property
+    def hash(self):
+        """str: Computes a hash based on the current contents of the bundle."""
+        file_hashes = sorted(file.hash for file in self.files)
+        combined_hashes = '\n'.join(file_hashes).encode('utf-8')
+        return hashlib.sha256(combined_hashes).hexdigest()

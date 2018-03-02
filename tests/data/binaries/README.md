@@ -5,6 +5,7 @@ The `chroot/` subdirectory should be treated as the root directory for placement
 Currently, the only test is `fizz-buzz` which can be compiled with `gcc` by running:
 
 ```bash
+gcc fizz-buzz.c -no-pie -m32 -o ./chroot/bin/fizz-buzz-glibc-32-exe
 gcc fizz-buzz.c -m32 -o ./chroot/bin/fizz-buzz-glibc-32
 gcc fizz-buzz.c -m64 -o ./chroot/bin/fizz-buzz-glibc-64
 ```

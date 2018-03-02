@@ -5,6 +5,7 @@ from subprocess import Popen
 
 import pytest
 
+from exodus_bundler.bundling import Bundle
 from exodus_bundler.bundling import Elf
 from exodus_bundler.bundling import File
 from exodus_bundler.bundling import bytes_to_int
@@ -21,8 +22,60 @@ ldd_output_directory = os.path.join(parent_directory, 'data', 'ldd-output')
 chroot = os.path.join(parent_directory, 'data', 'binaries', 'chroot')
 ldd = os.path.join(chroot, 'bin', 'ldd')
 fizz_buzz_glibc_32 = os.path.join(chroot, 'bin', 'fizz-buzz-glibc-32')
+fizz_buzz_glibc_32_exe = os.path.join(chroot, 'bin', 'fizz-buzz-glibc-32-exe')
 fizz_buzz_glibc_64 = os.path.join(chroot, 'bin', 'fizz-buzz-glibc-64')
 fizz_buzz_musl_64 = os.path.join(chroot, 'bin', 'fizz-buzz-musl-64')
+
+
+@pytest.mark.parametrize('path,expected_file_count', [
+    (fizz_buzz_glibc_32, 3),
+    (fizz_buzz_glibc_64, 3),
+    (fizz_buzz_musl_64, 2),
+    (ldd, 1),
+])
+def test_bundle_add_file(path, expected_file_count):
+    bundle = Bundle(chroot=chroot)
+    assert len(bundle.files) == 0, 'The initial bundle should contain no files.'
+    bundle.add_file(path)
+    assert len(bundle.files) == expected_file_count, \
+        'The bundle should include %d files.' % expected_file_count
+
+
+def test_bundle_delete_working_directory():
+    bundle = Bundle()
+    assert bundle.working_directory is None, \
+        'A directory should only be created if passed `working_directory=True`.'
+    bundle = Bundle(working_directory=True)
+    working_directory = bundle.working_directory
+    assert os.path.exists(working_directory), \
+        'A working directory should have been created.'
+    bundle.delete_working_directory()
+    assert not os.path.exists(working_directory), \
+        'The working directory should have been deleted.'
+    assert bundle.working_directory is None, \
+        'The working directory should have been cleared after deletion.'
+
+
+def test_bundle_hash():
+    bundle = Bundle(chroot=chroot)
+    hashes = [bundle.hash]
+    for filename in [fizz_buzz_glibc_32, fizz_buzz_glibc_64, fizz_buzz_musl_64]:
+        bundle.add_file(filename)
+        hashes.append(bundle.hash)
+    assert len(hashes) == len(set(hashes)), 'All of the hashes should be unique.'
+    assert all(len(hash) == 64 for hash in hashes), 'All of the hashes should have length 64.'
+
+
+def test_bundle_root():
+    try:
+        bundle = Bundle(working_directory=True)
+        assert bundle.hash in bundle.bundle_root, 'Bundle path should include the hash.'
+        assert bundle.bundle_root.startswith(bundle.working_directory), \
+            'The bundle root should be a subdirectory of the working directory.'
+    except:  # noqa: E722
+        raise
+    finally:
+        bundle.delete_working_directory()
 
 
 @pytest.mark.parametrize('int,bytes,byteorder', [
@@ -35,16 +88,20 @@ def test_bytes_to_int(int, bytes, byteorder):
     assert bytes_to_int(bytes, byteorder=byteorder) == int, 'Byte conversion should work.'
 
 
-def test_create_unpackaged_bundle():
+@pytest.mark.parametrize('fizz_buzz', [
+    (fizz_buzz_glibc_32),
+    (fizz_buzz_glibc_64),
+])
+def test_create_unpackaged_bundle(fizz_buzz):
     """This tests that the packaged executable runs as expected. At the very least, this
     tests that the symbolic links and launcher are functioning correctly. Unfortunately,
     it doesn't really test the linker overrides unless the required libraries are not
     present on the current system. FWIW, the CircleCI docker image being used is
     incompatible, so the continuous integration tests are more meaningful."""
     root_directory = create_unpackaged_bundle(
-        rename=[], executables=[fizz_buzz_glibc_32], chroot=chroot)
+        rename=[], executables=[fizz_buzz], chroot=chroot)
     try:
-        binary_path = os.path.join(root_directory, 'bin', os.path.basename(fizz_buzz_glibc_32))
+        binary_path = os.path.join(root_directory, 'bin', os.path.basename(fizz_buzz))
 
         process = Popen([binary_path], stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
@@ -115,6 +172,32 @@ def test_elf_linker(fizz_buzz, expected_linker):
         'The correct linker should be extracted from the ELF program header.'
 
 
+@pytest.mark.parametrize('fizz_buzz, expected_type', [
+    (fizz_buzz_glibc_32, 'shared'),
+    (fizz_buzz_glibc_32_exe, 'executable'),
+    (fizz_buzz_glibc_64, 'shared'),
+])
+def test_elf_type(fizz_buzz, expected_type):
+    elf = Elf(fizz_buzz)
+    assert elf.type == expected_type, 'Fizz buzz should match the expected ELF binary type.'
+
+
+def test_file_destination():
+    arch_file = File(os.path.join(ldd_output_directory, 'htop-arch.txt'))
+    arch_directory = os.path.dirname(arch_file.destination)
+    fizz_buzz_file = File(fizz_buzz_glibc_32)
+    fizz_buzz_directory = os.path.dirname(fizz_buzz_file.destination)
+    assert arch_directory != fizz_buzz_directory, \
+        'Executable and non-executable files should not be written to the same directory.'
+
+
+def test_file_executable():
+    fizz_buzz_file = File(fizz_buzz_glibc_32)
+    arch_file = File(os.path.join(ldd_output_directory, 'htop-arch.txt'))
+    assert fizz_buzz_file.executable, 'The fizz buzz executable should be executable.'
+    assert not arch_file.executable, 'The arch text file should not be executable.'
+
+
 def test_file_elf():
     fizz_buzz_file = File(fizz_buzz_glibc_32)
     arch_file = File(os.path.join(ldd_output_directory, 'htop-arch.txt'))
@@ -132,6 +215,33 @@ def test_file_hash():
     # Found by executing `sha256sum fizz-buzz`.
     expected_hash = 'd54ab4714215d7822bf490df5cdf49bc3f32b4c85a439b109fc7581355f9d9c5'
     assert File(fizz_buzz_glibc_32).hash == expected_hash, 'Hashes should match.'
+
+
+@pytest.mark.parametrize('fizz_buzz', [
+    (fizz_buzz_glibc_32),
+    (fizz_buzz_glibc_64),
+    (fizz_buzz_musl_64),
+])
+def test_file_requires_launcher(fizz_buzz):
+    file = File(fizz_buzz, chroot=chroot)
+    assert file.requires_launcher, 'Fizz buzz should require a launcher.'
+    assert all(not dependency.requires_launcher for dependency in file.elf.dependencies), \
+        'All of the dependencies should not require launchers.'
+
+
+def test_file_symlink():
+    bundle = Bundle(chroot=chroot, working_directory=True)
+    try:
+        bundle.add_file(fizz_buzz_glibc_32)
+        file = next(iter(bundle.files))
+        file.copy(bundle.working_directory)
+        symlink = file.symlink(bundle.working_directory, bundle.bundle_root)
+        assert os.path.islink(symlink), 'A symlink should have been created.'
+        assert os.path.exists(symlink), 'The symlink should point to the actual file.'
+    except:  # noqa: E722
+        raise
+    finally:
+        bundle.delete_working_directory()
 
 
 @pytest.mark.parametrize('filename_prefix', [
