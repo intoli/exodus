@@ -490,3 +490,43 @@ class File(object):
         """str: Computes a hash based on the file content, useful for file deduplication."""
         with open(self.path, 'rb') as f:
             return hashlib.sha256(f.read()).hexdigest()
+
+
+class Bundle(object):
+    """A collection of files to be included in a bundle and utilities for creating bundles.
+
+    Attributes:
+        bundle_root (str): The root directory where the bundles will be written and packaged.
+        chroot (str): The root directory used when invoking the linker (or `None` for `/`).
+        files (:obj:`list` of :obj:`File`): The files to be included in the bundle.
+    """
+    def __init__(self, bundle_root=None, chroot=None):
+        """Constructor for the `Bundle` class.
+
+        Args:
+            bundle_root (string, optional): The location where the bundle will be created on
+                disk. A temporary directory will be constructed if one is not specified, but this
+                will only happen after the first write is attempted.
+            chroot (str, optional): If specified, all absolute paths will be treated as being
+                relative to this root (mainly useful for testing).
+        """
+        self.bundle_root = bundle_root
+        self.chroot = chroot
+        self.files = set()
+
+    def add_file(self, path, entry_point=None):
+        """Adds an additional file to the bundle.
+
+        Note:
+            All of the file's dependencies will additionally be pulled into the bundle if the file
+            corresponds to a an ELF binary. This is true regardless of whether or not an entry point
+            is specified for the binary.
+
+        Args:
+            path (str): Can be either an absolute path, relative path, or a binary name in `PATH`.
+            entry_point (string, optional): The name of the bundle entry point for an executable.
+                If `True`, the executable's basename will be used.
+        """
+        file = File(path, entry_point=entry_point, chroot=self.chroot)
+        if file.elf:
+            self.files |= file.elf.dependencies
