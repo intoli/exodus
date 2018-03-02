@@ -75,6 +75,18 @@ def test_elf_bits(fizz_buzz, bits):
     (fizz_buzz_glibc_32),
     (fizz_buzz_glibc_64),
 ])
+def test_elf_dependencies(fizz_buzz):
+    fizz_buzz_elf = Elf(fizz_buzz, chroot=chroot)
+    direct_dependencies = fizz_buzz_elf.direct_dependencies
+    all_dependencies = fizz_buzz_elf.dependencies
+    assert set(direct_dependencies).issubset(all_dependencies), \
+        'The direct dependencies should be a subset of all dependencies.'
+
+
+@pytest.mark.parametrize('fizz_buzz', [
+    (fizz_buzz_glibc_32),
+    (fizz_buzz_glibc_64),
+])
 def test_elf_direct_dependencies(fizz_buzz):
     fizz_buzz_elf = Elf(fizz_buzz, chroot=chroot)
     dependencies = fizz_buzz_elf.direct_dependencies
