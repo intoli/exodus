@@ -343,8 +343,8 @@ class Elf(object):
                 # Read in the segment.
                 f.seek(p_offset)
                 segment = f.read(p_filesz)
-                # It should be null-terminate.
-                assert segment[-1] == 0, 'The string should be null terminated.'
+                # It should be null-terminated (b'\x00' in Python 2, 0 in Python 3).
+                assert segment[-1] in [b'\x00', 0], 'The string should be null terminated.'
                 assert self.linker is None, 'More than one linker found.'
                 self.linker = segment[:-1].decode('ascii')
 
