@@ -271,6 +271,7 @@ class Elf(object):
 
     Attributes:
         bits (int): The number of bits for an ELF binary, either 32 or 64.
+        linker (str): The linker/interpreter specified in the program header.
     """
     def __init__(self, path):
         """Constructs the `Elf` instance.
@@ -290,6 +291,62 @@ class Elf(object):
             # Determine whether this is a 32-bit or 64-bit file.
             format_byte = f.read(1)
             self.bits = {b'\x01': 32, b'\x02': 64}[format_byte]
+
+            # Determine whether it's big or little endian and construct an integer parsing function.
+            endian_byte = f.read(1)
+            byteorder = {b'\x01': 'little', b'\x02': 'big'}[endian_byte]
+            assert byteorder == 'little', 'Big endian is not supported right now.'
+
+            def hex(bytes):
+                return bytes_to_int(bytes, byteorder=byteorder)
+
+            # Find the program header offset.
+            e_phoff_start = {32: hex(b'\x1c'), 64: hex(b'\x20')}[self.bits]
+            e_phoff_length = {32: 4, 64: 8}[self.bits]
+            f.seek(e_phoff_start)
+            e_phoff = hex(f.read(e_phoff_length))
+
+            # Determine the size of a program header entry.
+            e_phentsize_start = {32: hex(b'\x2a'), 64: hex(b'\x36')}[self.bits]
+            f.seek(e_phentsize_start)
+            e_phentsize = hex(f.read(2))
+
+            # Determine the number of program header entries.
+            e_phnum_start = {32: hex(b'\x2c'), 64: hex(b'\x38')}[self.bits]
+            f.seek(e_phnum_start)
+            e_phnum = hex(f.read(2))
+
+            # Loop through each program header.
+            self.linker = None
+            for header_index in range(e_phnum):
+                header_start = e_phoff + header_index * e_phentsize
+                f.seek(header_start)
+                p_type = f.read(4)
+                # A p_type of \x03 corresponds to a PT_INTERP header (e.g. the linker).
+                if len(p_type) == 0:
+                    break
+                if not p_type == b'\x03\x00\x00\x00':
+                    continue
+
+                # Determine the offset for the segment.
+                p_offset_start = header_start + {32: hex(b'\04'), 64: hex(b'\x08')}[self.bits]
+                p_offset_length = {32: 4, 64: 8}[self.bits]
+                f.seek(p_offset_start)
+                p_offset = hex(f.read(p_offset_length))
+
+                # Determine the size of the segment.
+                p_filesz_start = header_start + {32: hex(b'\x10'), 64: hex(b'\x20')}[self.bits]
+                p_filesz_length = {32: 4, 64: 8}[self.bits]
+                f.seek(p_filesz_start)
+                p_filesz = hex(f.read(p_filesz_length))
+
+                # Read in the segment.
+                f.seek(p_offset)
+                segment = f.read(p_filesz)
+                # It should be null-terminate.
+                assert segment[-1] == 0, 'The string should be null terminated.'
+                assert self.linker is None, 'More than one linker found.'
+                self.linker = segment[:-1].decode('ascii')
 
 
 class File(object):
