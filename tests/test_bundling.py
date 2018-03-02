@@ -23,6 +23,7 @@ ldd_output_directory = os.path.join(parent_directory, 'data', 'ldd-output')
 chroot = os.path.join(parent_directory, 'data', 'binaries', 'chroot')
 ldd = os.path.join(chroot, 'bin', 'ldd')
 fizz_buzz_glibc_32 = os.path.join(chroot, 'bin', 'fizz-buzz-glibc-32')
+fizz_buzz_glibc_64 = os.path.join(chroot, 'bin', 'fizz-buzz-glibc-64')
 
 
 @pytest.mark.parametrize('int,bytes,byteorder', [
@@ -59,11 +60,15 @@ def test_detect_elf_binary():
     assert not detect_elf_binary(ldd), 'The `ldd` file should be a shell script.'
 
 
-def test_elf_bits():
-    fizz_buzz_elf = Elf(fizz_buzz_glibc_32)
+@pytest.mark.parametrize('fizz_buzz,bits', [
+    (fizz_buzz_glibc_32, 32),
+    (fizz_buzz_glibc_64, 64),
+])
+def test_elf_bits(fizz_buzz, bits):
+    fizz_buzz_elf = Elf(fizz_buzz)
     # Can be checked by running `file fizz-buzz`.
-    assert fizz_buzz_elf.bits == 32, \
-        'The fizz buzz executable should be 32-bit.'
+    assert fizz_buzz_elf.bits == bits, \
+        'The fizz buzz executable should be %d-bit.' % bits
 
 
 def test_elf_direct_dependencies():
