@@ -402,7 +402,7 @@ class File(object):
         path (str): The absolute normalized path to the file on disk.
     """
 
-    def __init__(self, path, entry_point=None):
+    def __init__(self, path, entry_point=None, chroot=None):
         """Constructor for the `File` class.
 
         Note:
@@ -412,6 +412,8 @@ class File(object):
             path (str): Can be either an absolute path, relative path, or a binary name in `PATH`.
             entry_point (string): The name of the bundle entry point for an executable. If `True`,
                 the executable's basename will be used.
+            chroot (str, optional): If specified, all absolute paths will be treated as being
+                relative to this root (mainly useful for testing).
         """
         # Find the full path to the file.
         if entry_point:
@@ -428,9 +430,10 @@ class File(object):
 
         # Parse an `Elf` object from the file.
         try:
-            self.elf = Elf(path)
+            self.elf = Elf(path, chroot=chroot)
         except InvalidElfBinaryError:
             self.elf = None
+        self.chroot = chroot
 
     def __repr__(self):
         return '<File(path="%s")>' % self.path
