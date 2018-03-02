@@ -274,6 +274,7 @@ class Elf(object):
     Attributes:
         bits (int): The number of bits for an ELF binary, either 32 or 64.
         linker (str): The linker/interpreter specified in the program header.
+        path (str): The path to the file.
     """
     def __init__(self, path):
         """Constructs the `Elf` instance.
@@ -283,6 +284,7 @@ class Elf(object):
         """
         if not os.path.exists(path):
             raise MissingFileError('The "%s" file was not found.' % path)
+        self.path = path
 
         with open(path, 'rb') as f:
             # Make sure that this is actually an ELF binary.
