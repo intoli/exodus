@@ -225,6 +225,22 @@ def test_file_requires_launcher(fizz_buzz):
         'All of the dependencies should not require launchers.'
 
 
+def test_file_symlink():
+    bundle = Bundle(chroot=chroot, working_directory=True)
+    try:
+        bundle.add_file(fizz_buzz_glibc_32)
+        file = next(iter(bundle.files))
+        file.copy(bundle.working_directory)
+        symlink = file.symlink(bundle.working_directory, bundle.bundle_root)
+        assert os.path.islink(symlink), 'A symlink should have been created.'
+        assert os.path.exists(symlink), 'The symlink should point to the actual file.'
+    except: # noqa: E722
+        raise
+    finally:
+        pass
+        #bundle.delete_working_directory()
+
+
 @pytest.mark.parametrize('filename_prefix', [
     'htop-amazon-linux',
     'htop-arch',

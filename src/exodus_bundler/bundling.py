@@ -479,6 +479,26 @@ class File(object):
 
         return full_destination
 
+    def symlink(self, working_directory, bundle_root):
+        """Creates a relative symlink from the `source` to the `destination`.
+
+        Args:
+            working_directory (str): The root that `destination` will be joined with.
+            bundle_root (str): The root that `source` will be joined with.
+        Returns:
+            str: The normalized and absolute path to the symlink.
+        """
+        destination_path = os.path.join(working_directory, self.destination)
+        source_path = os.path.join(bundle_root, self.source)
+
+        source_parent = os.path.dirname(source_path)
+        if not os.path.exists(source_parent):
+            os.makedirs(source_parent)
+        relative_destination_path = os.path.relpath(destination_path, source_parent)
+        os.symlink(relative_destination_path, source_path)
+
+        return os.path.normpath(os.path.abspath(source_path))
+
     @stored_property
     def destination(self):
         """str: The relative path for the destination of the actual file contents."""
