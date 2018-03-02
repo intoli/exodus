@@ -483,6 +483,75 @@ class File(object):
 
         return full_destination
 
+    def create_launcher(self, working_directory, bundle_root):
+        """Creates a launcher at `source` for `destination`.
+
+        Note:
+            If an `entry_point` has been specified, it will also be created.
+        Args:
+            working_directory (str): The root that `destination` will be joined with.
+            bundle_root (str): The root that `source` will be joined with.
+        Returns:
+            str: The normalized and absolute path to the launcher.
+        """
+        destination_path = os.path.join(working_directory, self.destination)
+        source_path = os.path.join(bundle_root, self.source)
+
+        source_parent = os.path.dirname(source_path)
+        if not os.path.exists(source_parent):
+            os.makedirs(source_parent)
+        relative_destination_path = os.path.relpath(destination_path, source_parent)
+        executable = relative_destination_path
+
+        linker_file = File(self.elf.linker, chroot=self.chroot, library=True)
+        relative_linker_path = os.path.relpath(linker_file.path, source_parent)
+        linker = relative_linker_path
+
+        ld_library_path = '/lib64:/usr/lib64:/lib/:/usr/lib:/lib32/:/usr/lib32/:'
+        ld_library_path += os.environ.get('LD_LIBRARY_PATH', '')
+        relative_library_paths = []
+        for directory in ld_library_path.split(':'):
+            if not len(directory):
+                continue
+
+            # Get the actual absolute path for the library directory.
+            directory = os.path.normpath(os.path.abspath(directory))
+            if self.chroot:
+                directory = os.path.join(self.chroot, os.path.relpath(directory, '/'))
+
+            # Convert it into a path relative to the launcher/source.
+            relative_library_path = os.path.relpath(directory, source_parent)
+            relative_library_paths.append(relative_library_path)
+        library_path = ':'.join(relative_library_paths)
+
+        # Try a c launcher first and fallback.
+        try:
+            launcher_content = construct_binary_launcher(
+                linker=linker, library_path=library_path, executable=executable)
+            with open(source_path, 'wb') as f:
+                f.write(launcher_content)
+        except CompilerNotFoundError:
+            logger.warn((
+                'Installing either the musl or diet C libraries will result in more efficient '
+                'launchers (currently using bash fallbacks instead).'
+            ))
+            launcher_content = construct_bash_launcher(
+                linker=linker, library_path=library_path, executable=executable)
+            with open(source_path, 'w') as f:
+                f.write(launcher_content)
+        shutil.copymode(self.path, source_path)
+
+        # Create a symlink in `./bin/` if an entry point is specified.
+        if self.entry_point:
+            bin_directory = os.path.join(working_directory, 'bin')
+            if not os.path.exists(bin_directory):
+                os.makedirs(bin_directory)
+            entry_point_path = os.path.join(bin_directory, self.entry_point)
+            relative_destination_path = os.path.relpath(source_path, bin_directory)
+            os.symlink(relative_destination_path, entry_point_path)
+
+        return os.path.normpath(os.path.abspath(source_path))
+
     def symlink(self, working_directory, bundle_root):
         """Creates a relative symlink from the `source` to the `destination`.
 
