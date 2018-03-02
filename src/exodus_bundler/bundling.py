@@ -532,7 +532,7 @@ class File(object):
         # as shared libraries, and many mostly-libraries are executable (*e.g.* glibc).
 
         # The easy ones.
-        if self.library or not self.elf or not self.elf.linker:
+        if self.library or not self.elf or not self.elf.linker or not self.executable:
             return False
         if self.elf.type == 'executable':
             return True
