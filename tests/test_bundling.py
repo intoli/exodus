@@ -5,11 +5,11 @@ from subprocess import Popen
 
 import pytest
 
+from exodus_bundler.bundling import Elf
 from exodus_bundler.bundling import File
+from exodus_bundler.bundling import bytes_to_int
 from exodus_bundler.bundling import create_unpackaged_bundle
 from exodus_bundler.bundling import detect_elf_binary
-from exodus_bundler.bundling import find_all_library_dependencies
-from exodus_bundler.bundling import find_direct_library_dependencies
 from exodus_bundler.bundling import parse_dependencies_from_ldd_output
 from exodus_bundler.bundling import resolve_binary
 from exodus_bundler.bundling import run_ldd
@@ -20,7 +20,19 @@ parent_directory = os.path.dirname(os.path.realpath(__file__))
 ldd_output_directory = os.path.join(parent_directory, 'data', 'ldd-output')
 chroot = os.path.join(parent_directory, 'data', 'binaries', 'chroot')
 ldd = os.path.join(chroot, 'bin', 'ldd')
-executable = os.path.join(chroot, 'bin', 'fizz-buzz')
+fizz_buzz_glibc_32 = os.path.join(chroot, 'bin', 'fizz-buzz-glibc-32')
+fizz_buzz_glibc_64 = os.path.join(chroot, 'bin', 'fizz-buzz-glibc-64')
+fizz_buzz_musl_64 = os.path.join(chroot, 'bin', 'fizz-buzz-musl-64')
+
+
+@pytest.mark.parametrize('int,bytes,byteorder', [
+    (1234567890, b'\xd2\x02\x96I\x00\x00\x00\x00', 'little'),
+    (1234567890, b'\x00\x00\x00\x00I\x96\x02\xd2', 'big'),
+    (9876543210, b'\xea\x16\xb0L\x02\x00\x00\x00', 'little'),
+    (9876543210, b'\x00\x00\x00\x02L\xb0\x16\xea', 'big'),
+])
+def test_bytes_to_int(int, bytes, byteorder):
+    assert bytes_to_int(bytes, byteorder=byteorder) == int, 'Byte conversion should work.'
 
 
 def test_create_unpackaged_bundle():
@@ -29,9 +41,10 @@ def test_create_unpackaged_bundle():
     it doesn't really test the linker overrides unless the required libraries are not
     present on the current system. FWIW, the CircleCI docker image being used is
     incompatible, so the continuous integration tests are more meaningful."""
-    root_directory = create_unpackaged_bundle(rename=[], executables=[executable], ldd=ldd)
+    root_directory = create_unpackaged_bundle(
+        rename=[], executables=[fizz_buzz_glibc_32], chroot=chroot)
     try:
-        binary_path = os.path.join(root_directory, 'bin', os.path.basename(executable))
+        binary_path = os.path.join(root_directory, 'bin', os.path.basename(fizz_buzz_glibc_32))
 
         process = Popen([binary_path], stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
@@ -43,28 +56,83 @@ def test_create_unpackaged_bundle():
 
 
 def test_detect_elf_binary():
-    assert detect_elf_binary(executable), 'The `fizz-buzz` file should be an ELF binary.'
+    assert detect_elf_binary(fizz_buzz_glibc_32), 'The `fizz-buzz` file should be an ELF binary.'
     assert not detect_elf_binary(ldd), 'The `ldd` file should be a shell script.'
+
+
+@pytest.mark.parametrize('fizz_buzz,bits', [
+    (fizz_buzz_glibc_32, 32),
+    (fizz_buzz_glibc_64, 64),
+    (fizz_buzz_musl_64, 64),
+])
+def test_elf_bits(fizz_buzz, bits):
+    fizz_buzz_elf = Elf(fizz_buzz)
+    # Can be checked by running `file fizz-buzz`.
+    assert fizz_buzz_elf.bits == bits, \
+        'The fizz buzz executable should be %d-bit.' % bits
+
+
+@pytest.mark.parametrize('fizz_buzz', [
+    (fizz_buzz_glibc_32),
+    (fizz_buzz_glibc_64),
+])
+def test_elf_dependencies(fizz_buzz):
+    fizz_buzz_elf = Elf(fizz_buzz, chroot=chroot)
+    direct_dependencies = fizz_buzz_elf.direct_dependencies
+    all_dependencies = fizz_buzz_elf.dependencies
+    assert set(direct_dependencies).issubset(all_dependencies), \
+        'The direct dependencies should be a subset of all dependencies.'
+
+
+@pytest.mark.parametrize('fizz_buzz', [
+    (fizz_buzz_glibc_32),
+    (fizz_buzz_glibc_64),
+    (fizz_buzz_musl_64),
+])
+def test_elf_direct_dependencies(fizz_buzz):
+    fizz_buzz_elf = Elf(fizz_buzz, chroot=chroot)
+    dependencies = fizz_buzz_elf.direct_dependencies
+    assert all(file.path.startswith(chroot) for file in dependencies), \
+        'All dependencies should be located within the chroot.'
+    assert len(dependencies), 'There should be at least one dependency.'
+
+    # These don't apply to the musl binary.
+    if 'glib' in fizz_buzz:
+        assert len(dependencies) == 2, 'The linker and libc should be the only dependencies.'
+        assert any('libc.so' in file.path for file in dependencies), \
+            '"libc" was not found as a direct dependency of the executable.'
+
+
+@pytest.mark.parametrize('fizz_buzz,expected_linker', [
+    (fizz_buzz_glibc_32, '/lib/ld-linux.so.2'),
+    (fizz_buzz_glibc_64, '/lib64/ld-linux-x86-64.so.2'),
+    (fizz_buzz_musl_64, '/lib/ld-musl-x86_64.so.1'),
+])
+def test_elf_linker(fizz_buzz, expected_linker):
+    # Found by running `readelf -l fizz-buzz`.
+    fizz_buzz_elf = Elf(fizz_buzz)
+    assert fizz_buzz_elf.linker == expected_linker, \
+        'The correct linker should be extracted from the ELF program header.'
 
 
 def test_file_destination():
     arch_file = File(os.path.join(ldd_output_directory, 'htop-arch.txt'))
     arch_directory = os.path.dirname(arch_file.destination)
-    fizz_buzz_file = File(executable)
+    fizz_buzz_file = File(fizz_buzz_glibc_32)
     fizz_buzz_directory = os.path.dirname(fizz_buzz_file.destination)
     assert arch_directory != fizz_buzz_directory, \
         'Executable and non-executable files should not be written to the same directory.'
 
 
 def test_file_executable():
-    fizz_buzz_file = File(executable)
+    fizz_buzz_file = File(fizz_buzz_glibc_32)
     arch_file = File(os.path.join(ldd_output_directory, 'htop-arch.txt'))
     assert fizz_buzz_file.executable, 'The fizz buzz executable should be executable.'
     assert not arch_file.executable, 'The arch text file should not be executable.'
 
 
 def test_file_elf():
-    fizz_buzz_file = File(executable)
+    fizz_buzz_file = File(fizz_buzz_glibc_32)
     arch_file = File(os.path.join(ldd_output_directory, 'htop-arch.txt'))
     assert fizz_buzz_file.elf, 'The fizz buzz executable should be an ELF binary.'
     assert not arch_file.elf, 'The arch text file should not be an ELF binary.'
@@ -79,22 +147,7 @@ def test_file_hash():
 
     # Found by executing `sha256sum fizz-buzz`.
     expected_hash = 'd54ab4714215d7822bf490df5cdf49bc3f32b4c85a439b109fc7581355f9d9c5'
-    assert File(executable).hash == expected_hash, 'Hashes should match.'
-
-
-def test_find_all_library_dependencies():
-    all_dependencies = find_all_library_dependencies(ldd, executable)
-    direct_dependencies = find_direct_library_dependencies(ldd, executable)
-    assert set(direct_dependencies).issubset(all_dependencies), \
-        'The direct dependencies should be a subset of all dependencies.'
-
-
-def test_find_direct_library_dependencies():
-    dependencies = find_direct_library_dependencies(ldd, executable)
-    assert all(dependency.startswith('/') for dependency in dependencies), \
-        'Dependencies should be absolute paths.'
-    assert any('libc.so' in line for line in run_ldd(ldd, executable)), \
-        '"libc" was not found as a direct dependency of the executable.'
+    assert File(fizz_buzz_glibc_32).hash == expected_hash, 'Hashes should match.'
 
 
 @pytest.mark.parametrize('filename_prefix', [
@@ -111,28 +164,26 @@ def test_parse_dependencies_from_ldd_output(filename_prefix):
     ldd_results_filename = filename_prefix + '-dependencies.txt'
     with open(os.path.join(ldd_output_directory, ldd_results_filename)) as f:
         expected_dependencies = [line for line in f.read().split('\n') if len(line)]
-    print(dependencies)
-    print(expected_dependencies)
 
     assert set(dependencies) == set(expected_dependencies), \
         'The dependencies were not parsed correctly from ldd output for "%s"' % filename_prefix
 
 
 def test_resolve_binary():
-    binary_directory = os.path.dirname(executable)
-    binary = os.path.basename(executable)
+    binary_directory = os.path.dirname(fizz_buzz_glibc_32)
+    binary = os.path.basename(fizz_buzz_glibc_32)
     old_path = os.getenv('PATH', '')
     try:
         os.environ['PATH'] = '%s%s%s' % (binary_directory, os.pathsep, old_path)
         resolved_binary = resolve_binary(binary)
-        assert resolved_binary == os.path.normpath(executable), \
+        assert resolved_binary == os.path.normpath(fizz_buzz_glibc_32), \
             'The full binary path was not resolved correctly.'
     finally:
         os.environ['PATH'] = old_path
 
 
 def test_run_ldd():
-    assert any('libc.so' in line for line in run_ldd(ldd, executable)), \
+    assert any('libc.so' in line for line in run_ldd(ldd, fizz_buzz_glibc_32)), \
         '"libc" was not found in the output of "ldd" for the executable.'
 
 

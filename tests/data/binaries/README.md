@@ -5,7 +5,14 @@ The `chroot/` subdirectory should be treated as the root directory for placement
 Currently, the only test is `fizz-buzz` which can be compiled with `gcc` by running:
 
 ```bash
-gcc fizz-buzz.c -m32 -o ./chroot/bin/fizz-buzz
+gcc fizz-buzz.c -m32 -o ./chroot/bin/fizz-buzz-glibc-32
+gcc fizz-buzz.c -m64 -o ./chroot/bin/fizz-buzz-glibc-64
+```
+
+There is also a musl version which can be compiled similarly with `clang` (`gcc` gives an error for some reason).
+
+```bash
+musl-clang fizz-buzz.c -m64 -o ./chroot/bin/fizz-buzz-musl-64
 ```
 
 
@@ -21,3 +28,9 @@ Components of the [GNU C Library (glibc)](https://www.gnu.org/software/libc/) ar
 These are licensed under a mixture of licenses.
 The most recent version of the licenses can be found [in the git repository for the project](https://sourceware.org/git/?p=glibc.git;a=blob_plain;f=LICENSES;hb=HEAD).
 Additionally, a copy has been duplicated in this directory in [GLIBC-LICENSES](./GLIBC-LICENSES).
+
+Components of the [MUSL C Library](https://www.musl-libc.org/) are similarly included for the same reasons.
+These are licensed under [a standard MIT license](https://git.musl-libc.org/cgit/musl/tree/COPYRIGHT).
+This copyright notice is reproduced here in [MUSL-COPYRIGHT](MUSL-COPYRIGHT).
+
+If you're involved with one of these projects and feel that there's an issue with the licensing or attribution here, please open an issue on the repository and we'll make whatever changes are necessary.
