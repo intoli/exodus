@@ -397,6 +397,7 @@ class File(object):
         will correspond to a path like 'data/{hash}' which is then used in bundling.
 
     Attributes:
+        chroot (str): A location to treat as the root during dependency linking (or `None`).
         elf (Elf): A corresponding `Elf` object, or `None` if it is not an ELF formatted file.
         entry_point (str): The name of the bundle entry point for an executable binary (or `None`).
         path (str): The absolute normalized path to the file on disk.
