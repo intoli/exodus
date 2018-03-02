@@ -22,6 +22,7 @@ ldd_output_directory = os.path.join(parent_directory, 'data', 'ldd-output')
 chroot = os.path.join(parent_directory, 'data', 'binaries', 'chroot')
 ldd = os.path.join(chroot, 'bin', 'ldd')
 fizz_buzz_glibc_32 = os.path.join(chroot, 'bin', 'fizz-buzz-glibc-32')
+fizz_buzz_glibc_32_exe = os.path.join(chroot, 'bin', 'fizz-buzz-glibc-32-exe')
 fizz_buzz_glibc_64 = os.path.join(chroot, 'bin', 'fizz-buzz-glibc-64')
 fizz_buzz_musl_64 = os.path.join(chroot, 'bin', 'fizz-buzz-musl-64')
 
@@ -165,6 +166,16 @@ def test_elf_linker(fizz_buzz, expected_linker):
     fizz_buzz_elf = Elf(fizz_buzz)
     assert fizz_buzz_elf.linker == expected_linker, \
         'The correct linker should be extracted from the ELF program header.'
+
+
+@pytest.mark.parametrize('fizz_buzz, expected_type', [
+    (fizz_buzz_glibc_32, 'shared'),
+    (fizz_buzz_glibc_32_exe, 'executable'),
+    (fizz_buzz_glibc_64, 'shared'),
+])
+def test_elf_type(fizz_buzz, expected_type):
+    elf = Elf(fizz_buzz)
+    assert elf.type == expected_type, 'Fizz buzz should match the expected ELF binary type.'
 
 
 def test_file_destination():

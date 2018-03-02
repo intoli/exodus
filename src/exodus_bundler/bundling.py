@@ -250,6 +250,7 @@ class Elf(object):
         chroot (str): The root directory used when invoking the linker (or `None`).
         linker (str): The linker/interpreter specified in the program header.
         path (str): The path to the file.
+        type (str): The binary type, one of 'relocatable', 'executable', 'shared', or 'core'.
     """
     def __init__(self, path, chroot=None):
         """Constructs the `Elf` instance.
@@ -281,6 +282,11 @@ class Elf(object):
 
             def hex(bytes):
                 return bytes_to_int(bytes, byteorder=byteorder)
+
+            # Determine the type of the binary.
+            f.seek(hex(b'\x10'))
+            e_type = hex(f.read(2))
+            self.type = {1: 'relocatable', 2: 'executable', 3: 'shared', 4: 'core'}[e_type]
 
             # Find the program header offset.
             e_phoff_start = {32: hex(b'\x1c'), 64: hex(b'\x20')}[self.bits]
