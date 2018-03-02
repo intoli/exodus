@@ -356,6 +356,19 @@ class Elf(object):
         """Defines a hash for the object so it can be used in sets."""
         return hash(self.path)
 
+    @stored_property
+    def direct_dependencies(self):
+        """Runs the file's linker and returns a set of the dependencies as `File` instances."""
+        environment = {}
+        environment.update(os.environ)
+        environment['LD_TRACE_LOADED_OBJECTS'] = '1'
+        process = Popen(['ldd', self.path], executable=self.linker, stdout=PIPE, stderr=PIPE,
+                        env=environment)
+        stdout, stderr = process.communicate()
+        combined_output = stdout.decode('utf-8').split('\n') + stderr.decode('utf-8').split('\n')
+        filenames = parse_dependencies_from_ldd_output(combined_output)
+        return set(File(filename) for filename in filenames)
+
 
 class File(object):
     """Represents a file on disk and provides access to relevant properties and actions.
