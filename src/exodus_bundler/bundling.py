@@ -456,15 +456,15 @@ class File(object):
     def __repr__(self):
         return '<File(path="%s")>' % self.path
 
-    def copy(self, root_directory):
+    def copy(self, working_directory):
         """Copies the file to a location based on its `destination` property.
 
         Args:
-            root_directory (str): The root that the `destination` will be joined with.
+            working_directory (str): The root that the `destination` will be joined with.
         Returns:
             str: The normalized and absolute destination path.
         """
-        full_destination = os.path.join(root_directory, self.destination)
+        full_destination = os.path.join(working_directory, self.destination)
         full_destination = os.path.normpath(os.path.abspath(full_destination))
 
         # The filenames are based on content hashes, so there's no need to copy it twice.
