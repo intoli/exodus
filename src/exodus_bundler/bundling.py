@@ -6,6 +6,7 @@ import os
 import re
 import shutil
 import stat
+import struct
 import sys
 import tarfile
 import tempfile
@@ -23,6 +24,15 @@ from exodus_bundler.templating import render_template_file
 
 
 logger = logging.getLogger(__name__)
+
+
+def bytes_to_int(bytes, byteorder='big'):
+    """Simple helper function to convert byte strings into integers."""
+    endian = {'big': '>', 'little': '<'}[byteorder]
+    chars = struct.unpack(endian + ('B' * len(bytes)), bytes)
+    if byteorder == 'big':
+        chars = chars[::-1]
+    return sum(int(char) * 256 ** i for (i, char) in enumerate(chars))
 
 
 def create_bundle(executables, output, tarball=False, rename=[], ldd='ldd'):
