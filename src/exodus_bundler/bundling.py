@@ -224,7 +224,9 @@ def parse_dependencies_from_ldd_output(content):
 
     dependencies = []
     for line in content:
-        match = re.search('=>\s*(/.*?)\s*\(', line)
+        # This first one is a special case of invoke the linker as `ldd`.
+        match = re.search('^\s*(/.*?)\s*=>\s*ldd\s*\(', line)
+        match = match or re.search('=>\s*(/.*?)\s*\(', line)
         match = match or re.search('\s*(/.*?)\s*\(', line)
         if match:
             dependencies.append(match.group(1))
