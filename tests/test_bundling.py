@@ -5,6 +5,7 @@ from subprocess import Popen
 
 import pytest
 
+from exodus_bundler.bundling import Bundle
 from exodus_bundler.bundling import Elf
 from exodus_bundler.bundling import File
 from exodus_bundler.bundling import bytes_to_int
@@ -23,6 +24,20 @@ ldd = os.path.join(chroot, 'bin', 'ldd')
 fizz_buzz_glibc_32 = os.path.join(chroot, 'bin', 'fizz-buzz-glibc-32')
 fizz_buzz_glibc_64 = os.path.join(chroot, 'bin', 'fizz-buzz-glibc-64')
 fizz_buzz_musl_64 = os.path.join(chroot, 'bin', 'fizz-buzz-musl-64')
+
+
+@pytest.mark.parametrize('path,expected_file_count', [
+    (fizz_buzz_glibc_32, 3),
+    (fizz_buzz_glibc_64, 3),
+    (fizz_buzz_musl_64, 2),
+    (ldd, 1),
+])
+def test_bundle_add_file(path, expected_file_count):
+    bundle = Bundle(chroot=chroot)
+    assert len(bundle.files) == 0, 'The initial bundle should contain no files.'
+    bundle.add_file(path)
+    assert len(bundle.files) == expected_file_count, \
+        'The bundle should include %d files.' % expected_file_count
 
 
 @pytest.mark.parametrize('int,bytes,byteorder', [
