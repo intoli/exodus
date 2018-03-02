@@ -669,6 +669,18 @@ class Bundle(object):
         if file.elf:
             self.files |= file.elf.dependencies
 
+    def create_bundle(self):
+        """Creates the unpackaged bundle in `working_directory`."""
+        for file in self.files:
+            # Copy over the actual file.
+            file.copy(self.working_directory)
+
+            if file.requires_launcher:
+                file.create_launcher(working_directory=self.working_directory,
+                                     bundle_root=self.bundle_root)
+            else:
+                file.symlink(working_directory=self.working_directory, bundle_root=self.bundle_root)
+
     def delete_working_directory(self):
         """Recursively deletes the working directory."""
         shutil.rmtree(self.working_directory)
