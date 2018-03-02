@@ -371,9 +371,9 @@ class Elf(object):
     def __repr__(self):
         return '<Elf(path="%s")>' % self.path
 
-    @stored_property
-    def direct_dependencies(self):
-        """Runs the file's linker and returns a set of the dependencies as `File` instances."""
+    def find_direct_dependencies(self, linker=None):
+        """Runs the specified linker and returns a set of the dependencies as `File` instances."""
+        linker = linker or self.linker
         environment = {}
         environment.update(os.environ)
         environment['LD_TRACE_LOADED_OBJECTS'] = '1'
@@ -389,11 +389,40 @@ class Elf(object):
             environment['LD_LIBRARY_PATH'] = ld_library_path
 
         process = Popen(['ldd', '--inhibit-cache', '--inhibit-rpath', '', self.path],
-                        executable=self.linker, stdout=PIPE, stderr=PIPE, env=environment)
+                        executable=linker, stdout=PIPE, stderr=PIPE, env=environment)
         stdout, stderr = process.communicate()
         combined_output = stdout.decode('utf-8').split('\n') + stderr.decode('utf-8').split('\n')
-        filenames = parse_dependencies_from_ldd_output(combined_output) + [self.linker]
-        return set(File(filename) for filename in filenames)
+        # Note that we're explicitly adding the linker because when we invoke it as `ldd` we can't
+        # extract the real path from the trace output. Even if it were here twice, it would be
+        # deduplicated though the use of a set.
+        filenames = parse_dependencies_from_ldd_output(combined_output) + [linker]
+        print(filenames)
+        return set(File(filename, chroot=self.chroot) for filename in filenames)
+
+    @stored_property
+    def dependencies(self):
+        """Run's the files' linker iteratively and returns a set of all library dependencies."""
+        all_dependencies = set()
+        unprocessed_dependencies = set(self.direct_dependencies)
+        i = 0
+        while len(unprocessed_dependencies):
+            print(len(all_dependencies))
+            i += 1
+            if i > 100:
+                assert False
+            all_dependencies |= unprocessed_dependencies
+            new_dependencies = set()
+            for dependency in unprocessed_dependencies:
+                if dependency.elf:
+                    new_dependencies |= set(dependency.elf.find_direct_dependencies(self.linker))
+            print(new_dependencies, all_dependencies)
+            unprocessed_dependencies = new_dependencies - all_dependencies
+        return all_dependencies
+
+    @stored_property
+    def direct_dependencies(self):
+        """Runs the file's linker and returns a set of the dependencies as `File` instances."""
+        return self.find_direct_dependencies()
 
 
 class File(object):
