@@ -503,7 +503,30 @@ class File(object):
     @stored_property
     def requires_launcher(self):
         """bool: Whether a launcher is necessary for this file."""
-        return bool(self.elf and self.elf.linker)
+        # This is unfortunately a heuristic approach because many executables are compiled
+        # as shared libraries, and many mostly-libraries are executable (*e.g.* glibc).
+
+        # The easy ones.
+        if self.library or not self.elf or not self.elf.linker:
+            return False
+        if self.elf.type == 'executable':
+            return True
+        if self.entry_point:
+            return True
+
+        # These will hopefully do more good than harm.
+        bin_directories = ['/bin/', '/bin32/', '/bin64/']
+        lib_directories = ['/lib/', '/lib32/', '/lib64/']
+        in_bin_directory = any(directory in self.path for directory in bin_directories)
+        in_lib_directory = any(directory in self.path for directory in lib_directories)
+        if in_bin_directory and not in_lib_directory:
+            return True
+        if in_lib_directory and not in_bin_directory:
+            return False
+
+        # This is arbitrary, but it's more likely that people will pipe in library dependencies
+        # than executables without entry points. There will clearly be exceptions.
+        return False
 
 
 class Bundle(object):
