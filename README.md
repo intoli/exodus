@@ -130,7 +130,7 @@ An equivalent shell script will be used as a fallback, but it carries significan
 The command-line interface supports the following options.
 
 ```
-usage: exodus [-h] [--ldd LDD_SCRIPT] [-o OUTPUT_FILE] [-q] [-r NEW_NAME] [-t]
+usage: exodus [-h] [-c CHROOT_PATH] [-o OUTPUT_FILE] [-q] [-r [NEW_NAME]] [-t]
               [-v]
               EXECUTABLE [EXECUTABLE ...]
 
@@ -143,10 +143,11 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  --ldd LDD_SCRIPT      The linker that will be invoked to resolve
-                        dependencies. In advanced usage, you may want to write
-                        your own `ldd` script which invokes the linker with
-                        custom arguments. (default: ldd)
+  -c CHROOT_PATH, --chroot CHROOT_PATH
+                        A directory that will be treated as the root during
+                        linking. Useful for testing and bundling extracted
+                        packages that won run without a chroot. (default:
+                        None)
   -o OUTPUT_FILE, --output OUTPUT_FILE
                         The file where the bundle will be written out to. The
                         extension depends on the output type. The
@@ -156,7 +157,7 @@ optional arguments:
                         "./exodus-{{executables}}-bundle.{{extension}}"
                         otherwise. (default: None)
   -q, --quiet           Suppress warning messages. (default: False)
-  -r NEW_NAME, --rename NEW_NAME
+  -r [NEW_NAME], --rename [NEW_NAME]
                         Renames the binary executable(s) before packaging. The
                         order of rename tags must match the order of
                         positional executable arguments. (default: [])
