@@ -528,5 +528,6 @@ class Bundle(object):
                 If `True`, the executable's basename will be used.
         """
         file = File(path, entry_point=entry_point, chroot=self.chroot)
+        self.files.add(file)
         if file.elf:
             self.files |= file.elf.dependencies
