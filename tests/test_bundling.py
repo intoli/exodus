@@ -67,8 +67,10 @@ def test_elf_bits():
 
 
 def test_elf_direct_dependencies():
-    fizz_buzz_elf = Elf(fizz_buzz_glibc_32)
+    fizz_buzz_elf = Elf(fizz_buzz_glibc_32, chroot=chroot)
     dependencies = fizz_buzz_elf.direct_dependencies
+    assert all(file.path.startswith(chroot) for file in dependencies), \
+        'All dependencies should be located within the chroot.'
     assert len(dependencies) == 2, 'The linker and libc should be the only dependencies.'
     assert any('libc.so' in file.path for file in dependencies), \
         '"libc" was not found as a direct dependency of the executable.'
@@ -130,8 +132,6 @@ def test_parse_dependencies_from_ldd_output(filename_prefix):
     ldd_results_filename = filename_prefix + '-dependencies.txt'
     with open(os.path.join(ldd_output_directory, ldd_results_filename)) as f:
         expected_dependencies = [line for line in f.read().split('\n') if len(line)]
-    print(dependencies)
-    print(expected_dependencies)
 
     assert set(dependencies) == set(expected_dependencies), \
         'The dependencies were not parsed correctly from ldd output for "%s"' % filename_prefix

@@ -225,8 +225,11 @@ def parse_dependencies_from_ldd_output(content):
     dependencies = []
     for line in content:
         # This first one is a special case of invoke the linker as `ldd`.
-        match = re.search('^\s*(/.*?)\s*=>\s*ldd\s*\(', line)
-        match = match or re.search('=>\s*(/.*?)\s*\(', line)
+        if re.search('^\s*(/.*?)\s*=>\s*ldd\s*\(', line):
+            # We'll exclude this because it's the hardcoded INTERP path, and it would be
+            # impossible to get the full path from this command output.
+            continue
+        match = re.search('=>\s*(/.*?)\s*\(', line)
         match = match or re.search('\s*(/.*?)\s*\(', line)
         if match:
             dependencies.append(match.group(1))
@@ -273,18 +276,22 @@ class Elf(object):
 
     Attributes:
         bits (int): The number of bits for an ELF binary, either 32 or 64.
+        chroot (str): The root directory used when invoking the linker (or `None`).
         linker (str): The linker/interpreter specified in the program header.
         path (str): The path to the file.
     """
-    def __init__(self, path):
+    def __init__(self, path, chroot=None):
         """Constructs the `Elf` instance.
 
         Args:
             path (str): The full path to the ELF binary.
+            chroot (str, optional): If specified, all absolute paths will be treated as being
+                relative to this root (mainly useful for testing).
         """
         if not os.path.exists(path):
             raise MissingFileError('The "%s" file was not found.' % path)
         self.path = path
+        self.chroot = chroot
 
         with open(path, 'rb') as f:
             # Make sure that this is actually an ELF binary.
@@ -351,6 +358,8 @@ class Elf(object):
                 assert segment[-1] in [b'\x00', 0], 'The string should be null terminated.'
                 assert self.linker is None, 'More than one linker found.'
                 self.linker = segment[:-1].decode('ascii')
+                if chroot:
+                    self.linker = os.path.join(chroot, os.path.relpath(self.linker, '/'))
 
     def __hash__(self):
         """Defines a hash for the object so it can be used in sets."""
@@ -362,11 +371,22 @@ class Elf(object):
         environment = {}
         environment.update(os.environ)
         environment['LD_TRACE_LOADED_OBJECTS'] = '1'
-        process = Popen(['ldd', self.path], executable=self.linker, stdout=PIPE, stderr=PIPE,
-                        env=environment)
+        if self.chroot:
+            ld_library_path = '/lib64:/usr/lib64:/lib/:/usr/lib:/lib32/:/usr/lib32/:'
+            ld_library_path += environment.get('LD_LIBRARY_PATH', '')
+            directories = []
+            for directory in ld_library_path.split(':'):
+                if os.path.isabs(directory):
+                    directory = os.path.join(self.chroot, os.path.relpath(directory, '/'))
+                directories.append(directory)
+            ld_library_path = ':'.join(directories)
+            environment['LD_LIBRARY_PATH'] = ld_library_path
+
+        process = Popen(['ldd', '--inhibit-cache', '--inhibit-rpath', '', self.path],
+                        executable=self.linker, stdout=PIPE, stderr=PIPE, env=environment)
         stdout, stderr = process.communicate()
         combined_output = stdout.decode('utf-8').split('\n') + stderr.decode('utf-8').split('\n')
-        filenames = parse_dependencies_from_ldd_output(combined_output)
+        filenames = parse_dependencies_from_ldd_output(combined_output) + [self.linker]
         return set(File(filename) for filename in filenames)
 
 
