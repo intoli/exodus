@@ -66,6 +66,14 @@ def test_elf_bits():
         'The fizz buzz executable should be 32-bit.'
 
 
+def test_elf_direct_dependencies():
+    fizz_buzz_elf = Elf(fizz_buzz_glibc_32)
+    dependencies = fizz_buzz_elf.direct_dependencies
+    assert len(dependencies) == 2, 'The linker and libc should be the only dependencies.'
+    assert any('libc.so' in file.path for file in dependencies), \
+        '"libc" was not found as a direct dependency of the executable.'
+
+
 def test_elf_linker():
     # Found by running `readelf -l fizz-buzz`.
     expected_linker = '/lib/ld-linux.so.2'
