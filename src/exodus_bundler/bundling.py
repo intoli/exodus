@@ -93,91 +93,24 @@ def create_bundle(executables, output, tarball=False, rename=[], chroot=None):
 
 def create_unpackaged_bundle(executables, rename=[], chroot=None):
     """Creates a temporary directory containing the unpackaged contents of the bundle."""
-    root_directory = tempfile.mkdtemp(prefix='exodus-bundle-')
+    bundle = Bundle(chroot=chroot, working_directory=True)
     try:
-        # Make the top-level bundle directories.
-        bin_directory = os.path.join(root_directory, 'bin')
-        os.makedirs(bin_directory)
-        lib_directory = os.path.join(root_directory, 'lib')
-        os.makedirs(lib_directory)
-        bundles_directory = os.path.join(root_directory, 'bundles')
-
-        # Loop through and package each executable.
+        # Sanitize the inputs.
         assert len(executables), 'No executables were specified.'
         assert len(executables) >= len(rename), \
             'More renamed options were included than executables.'
         # Pad the rename's with `True` so that `entry_point` can be specified.
         entry_points = rename + [True for i in range(len(executables) - len(rename))]
 
-        # Create `File` instances of the executables.
-        executable_files = set(
-            File(executable, entry_point, chroot=chroot)
-            for (executable, entry_point) in zip(executables, entry_points)
-        )
+        # Populate the bundle with files.
+        for (executable, entry_point) in zip(executables, entry_points):
+            bundle.add_file(executable, entry_point=entry_point)
 
-        for executable_file in executable_files:
-            # Make the bundle subdirectories for this executable.
-            binary_name = executable_file.entry_point
-            bundle_directory = os.path.join(bundles_directory, executable_file.hash)
-            bundle_bin_directory = os.path.join(bundle_directory, 'bin')
-            os.makedirs(bundle_bin_directory)
-            bundle_lib_directory = os.path.join(bundle_directory, 'lib')
-            os.makedirs(bundle_lib_directory)
+        bundle.create_bundle()
 
-            # Copy over the library dependencies and link them.
-            for dependency_file in executable_file.elf.dependencies:
-                # Create the `lib/{hash}` library file.
-                dependency_name = os.path.basename(dependency_file.path)
-                dependency_path = os.path.join(lib_directory, dependency_file.hash)
-                if not os.path.exists(dependency_path):
-                    shutil.copy(dependency_file.path, dependency_path)
-
-                # Create a link to the actual library from inside the bundle lib directory.
-                bundle_dependency_link = os.path.join(bundle_lib_directory, dependency_name)
-                relative_dependency_path = os.path.relpath(dependency_path, bundle_lib_directory)
-                if not os.path.exists(bundle_dependency_link):
-                    os.symlink(relative_dependency_path, bundle_dependency_link)
-                else:
-                    link_destination = os.readlink(bundle_dependency_link)
-                    link_destination = os.path.join(bundle_lib_directory, link_destination)
-                    # This is only a problem if the duplicate libraries have different content.
-                    if os.path.normpath(link_destination) != os.path.normpath(dependency_path):
-                        raise LibraryConflictError(
-                            'A library called "%s" was linked more than once.' % dependency_name)
-
-            # Copy over the executable.
-            bundle_executable_path = os.path.join(bundle_bin_directory, binary_name)
-            shutil.copy(executable_file.path, bundle_executable_path)
-
-            # Construct the launcher.
-            linker = os.path.basename(executable_file.elf.linker)
-            linker = os.path.join('..', 'lib', linker)
-            library_path = os.path.join('..', 'lib')
-            # Try a c launcher first and fallback.
-            try:
-                launcher_path = '%s-launcher' % bundle_executable_path
-                launcher_content = construct_binary_launcher(
-                    linker=linker, library_path=library_path, executable=binary_name)
-                with open(launcher_path, 'wb') as f:
-                    f.write(launcher_content)
-            except CompilerNotFoundError:
-                logger.warn((
-                    'Installing either the musl or diet C libraries will result in more efficient '
-                    'launchers (currently using bash fallbacks instead).'
-                ))
-                launcher_path = '%s-launcher.sh' % bundle_executable_path
-                launcher_content = construct_bash_launcher(
-                    linker=linker, library_path=library_path, executable=binary_name)
-                with open(launcher_path, 'w') as f:
-                    f.write(launcher_content)
-            shutil.copymode(bundle_executable_path, launcher_path)
-            executable_link = os.path.join(bin_directory, binary_name)
-            relative_launcher_path = os.path.relpath(launcher_path, bin_directory)
-            os.symlink(relative_launcher_path, executable_link)
-
-        return root_directory
+        return bundle.working_directory
     except:  # noqa: E722
-        shutil.rmtree(root_directory)
+        bundle.delete_working_directory()
         raise
 
 
