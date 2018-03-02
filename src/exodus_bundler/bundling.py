@@ -496,21 +496,21 @@ class Bundle(object):
     """A collection of files to be included in a bundle and utilities for creating bundles.
 
     Attributes:
-        bundle_root (str): The root directory where the bundles will be written and packaged.
         chroot (str): The root directory used when invoking the linker (or `None` for `/`).
         files (:obj:`list` of :obj:`File`): The files to be included in the bundle.
+        working_directory (str): The root directory where the bundles will be written and packaged.
     """
-    def __init__(self, bundle_root=None, chroot=None):
+    def __init__(self, working_directory=None, chroot=None):
         """Constructor for the `Bundle` class.
 
         Args:
-            bundle_root (string, optional): The location where the bundle will be created on
+            working_directory (string, optional): The location where the bundle will be created on
                 disk. A temporary directory will be constructed if one is not specified, but this
                 will only happen after the first write is attempted.
             chroot (str, optional): If specified, all absolute paths will be treated as being
                 relative to this root (mainly useful for testing).
         """
-        self.bundle_root = bundle_root
+        self.working_directory = working_directory
         self.chroot = chroot
         self.files = set()
 
