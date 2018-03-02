@@ -40,7 +40,8 @@ def test_create_unpackaged_bundle():
     it doesn't really test the linker overrides unless the required libraries are not
     present on the current system. FWIW, the CircleCI docker image being used is
     incompatible, so the continuous integration tests are more meaningful."""
-    root_directory = create_unpackaged_bundle(rename=[], executables=[fizz_buzz_glibc_32])
+    root_directory = create_unpackaged_bundle(
+        rename=[], executables=[fizz_buzz_glibc_32], chroot=chroot)
     try:
         binary_path = os.path.join(root_directory, 'bin', os.path.basename(fizz_buzz_glibc_32))
 
