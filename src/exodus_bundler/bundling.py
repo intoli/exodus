@@ -373,7 +373,7 @@ class Elf(object):
         # extract the real path from the trace output. Even if it were here twice, it would be
         # deduplicated though the use of a set.
         filenames = parse_dependencies_from_ldd_output(combined_output) + [linker]
-        return set(File(filename, chroot=self.chroot) for filename in filenames)
+        return set(File(filename, chroot=self.chroot, library=True) for filename in filenames)
 
     @stored_property
     def dependencies(self):
@@ -406,10 +406,11 @@ class File(object):
         chroot (str): A location to treat as the root during dependency linking (or `None`).
         elf (Elf): A corresponding `Elf` object, or `None` if it is not an ELF formatted file.
         entry_point (str): The name of the bundle entry point for an executable binary (or `None`).
+        library (bool): Specifies that this file is explicitly a shared library.
         path (str): The absolute normalized path to the file on disk.
     """
 
-    def __init__(self, path, entry_point=None, chroot=None):
+    def __init__(self, path, entry_point=None, chroot=None, library=False):
         """Constructor for the `File` class.
 
         Note:
@@ -440,7 +441,9 @@ class File(object):
             self.elf = Elf(path, chroot=chroot)
         except InvalidElfBinaryError:
             self.elf = None
+
         self.chroot = chroot
+        self.library = library
 
     def __eq__(self, other):
         return isinstance(other, File) and self.path == self.path and \
