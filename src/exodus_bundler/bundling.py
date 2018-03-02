@@ -14,7 +14,6 @@ from subprocess import PIPE
 from subprocess import Popen
 
 from exodus_bundler.errors import InvalidElfBinaryError
-from exodus_bundler.errors import LibraryConflictError
 from exodus_bundler.errors import MissingFileError
 from exodus_bundler.launchers import CompilerNotFoundError
 from exodus_bundler.launchers import construct_bash_launcher

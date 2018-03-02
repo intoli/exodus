@@ -8,12 +8,6 @@ class InvalidElfBinaryError(FatalError):
     pass
 
 
-class LibraryConflictError(FatalError):
-    """Signifies that two libraries with the same filename,
-    but different file contents were encounterer."""
-    pass
-
-
 class MissingFileError(FatalError):
     """Signifies that a file was not found."""
     pass
