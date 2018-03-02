@@ -72,7 +72,7 @@ def test_bundle_root():
         assert bundle.hash in bundle.bundle_root, 'Bundle path should include the hash.'
         assert bundle.bundle_root.startswith(bundle.working_directory), \
             'The bundle root should be a subdirectory of the working directory.'
-    except: # noqa: E722
+    except:  # noqa: E722
         raise
     finally:
         bundle.delete_working_directory()
@@ -234,11 +234,10 @@ def test_file_symlink():
         symlink = file.symlink(bundle.working_directory, bundle.bundle_root)
         assert os.path.islink(symlink), 'A symlink should have been created.'
         assert os.path.exists(symlink), 'The symlink should point to the actual file.'
-    except: # noqa: E722
+    except:  # noqa: E722
         raise
     finally:
-        pass
-        #bundle.delete_working_directory()
+        bundle.delete_working_directory()
 
 
 @pytest.mark.parametrize('filename_prefix', [
