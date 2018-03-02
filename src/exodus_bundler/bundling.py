@@ -151,10 +151,13 @@ def create_unpackaged_bundle(executables, rename=[], chroot=None):
 
             # Construct the launcher.
             linker = os.path.basename(executable_file.elf.linker)
+            linker = os.path.join('..', 'lib', linker)
+            library_path = os.path.join('..', 'lib')
             # Try a c launcher first and fallback.
             try:
                 launcher_path = '%s-launcher' % bundle_executable_path
-                launcher_content = construct_binary_launcher(linker=linker, binary=binary_name)
+                launcher_content = construct_binary_launcher(
+                    linker=linker, library_path=library_path, executable=binary_name)
                 with open(launcher_path, 'wb') as f:
                     f.write(launcher_content)
             except CompilerNotFoundError:
@@ -163,7 +166,8 @@ def create_unpackaged_bundle(executables, rename=[], chroot=None):
                     'launchers (currently using bash fallbacks instead).'
                 ))
                 launcher_path = '%s-launcher.sh' % bundle_executable_path
-                launcher_content = construct_bash_launcher(linker=linker, binary=binary_name)
+                launcher_content = construct_bash_launcher(
+                    linker=linker, library_path=library_path, executable=binary_name)
                 with open(launcher_path, 'w') as f:
                     f.write(launcher_content)
             shutil.copymode(bundle_executable_path, launcher_path)

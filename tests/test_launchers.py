@@ -17,11 +17,12 @@ fizz_buzz_source_file = os.path.join(parent_directory, 'data', 'binaries', 'fizz
 
 
 def test_construct_bash_launcher():
-    linker, binary = 'ld-linux.so.2', 'grep'
-    script_content = construct_bash_launcher(linker=linker, binary=binary)
+    linker, library_path, executable = '../lib/ld-linux.so.2', '../lib/', 'grep'
+    script_content = construct_bash_launcher(linker=linker, library_path=library_path,
+                                             executable=executable)
     assert script_content.startswith('#! /bin/bash\n')
     assert linker in script_content
-    assert binary in script_content
+    assert executable in script_content
 
 
 @pytest.mark.parametrize('compiler', ['diet', 'musl'])
