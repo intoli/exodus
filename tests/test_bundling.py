@@ -65,6 +65,18 @@ def test_bundle_hash():
     assert all(len(hash) == 64 for hash in hashes), 'All of the hashes should have length 64.'
 
 
+def test_bundle_root():
+    try:
+        bundle = Bundle(working_directory=True)
+        assert bundle.hash in bundle.bundle_root, 'Bundle path should include the hash.'
+        assert bundle.bundle_root.startswith(bundle.working_directory), \
+            'The bundle root should be a subdirectory of the working directory.'
+    except: # noqa: E722
+        raise
+    finally:
+        bundle.delete_working_directory()
+
+
 @pytest.mark.parametrize('int,bytes,byteorder', [
     (1234567890, b'\xd2\x02\x96I\x00\x00\x00\x00', 'little'),
     (1234567890, b'\x00\x00\x00\x00I\x96\x02\xd2', 'big'),
