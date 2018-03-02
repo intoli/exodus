@@ -539,16 +539,16 @@ class Bundle(object):
         if file.elf:
             self.files |= file.elf.dependencies
 
+    def delete_working_directory(self):
+        """Recursively deletes the working directory."""
+        shutil.rmtree(self.working_directory)
+        self.working_directory = None
+
     @property
     def bundle_root(self):
         """str: The root directory of the bundle where the original file structure is mirrored."""
         path = os.path.join(self.working_directory, 'bundles', self.hash)
         return os.path.normpath(os.path.abspath(path))
-
-    def delete_working_directory(self):
-        """Recursively deletes the working directory."""
-        shutil.rmtree(self.working_directory)
-        self.working_directory = None
 
     @property
     def hash(self):
