@@ -35,14 +35,14 @@ def bytes_to_int(bytes, byteorder='big'):
     return sum(int(char) * 256 ** i for (i, char) in enumerate(chars))
 
 
-def create_bundle(executables, output, tarball=False, rename=[]):
+def create_bundle(executables, output, tarball=False, rename=[], chroot=None):
     """Handles the creation of the full bundle."""
     # Initialize these ahead of time so they're always available for error handling.
     output_filename, output_file, root_directory = None, None, None
     try:
 
         # Create a temporary unpackaged bundle for the executables.
-        root_directory = create_unpackaged_bundle(executables, rename=rename)
+        root_directory = create_unpackaged_bundle(executables, rename=rename, chroot=chroot)
 
         # Populate the filename template.
         output_filename = render_template(output,
@@ -91,7 +91,7 @@ def create_bundle(executables, output, tarball=False, rename=[]):
                 os.chmod(output_filename, st.st_mode | stat.S_IEXEC)
 
 
-def create_unpackaged_bundle(executables, rename=[]):
+def create_unpackaged_bundle(executables, rename=[], chroot=None):
     """Creates a temporary directory containing the unpackaged contents of the bundle."""
     root_directory = tempfile.mkdtemp(prefix='exodus-bundle-')
     try:
@@ -111,7 +111,7 @@ def create_unpackaged_bundle(executables, rename=[]):
 
         # Create `File` instances of the executables.
         executable_files = set(
-            File(executable, entry_point)
+            File(executable, entry_point, chroot=chroot)
             for (executable, entry_point) in zip(executables, entry_points)
         )
 

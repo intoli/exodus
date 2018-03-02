@@ -25,6 +25,14 @@ def parse_args(args=None, namespace=None):
         'One or more ELF executables to include in the exodus bundle.'
     ))
 
+    parser.add_argument('-c', '--chroot', metavar='CHROOT_PATH',
+        default=None,
+        help=(
+            'A directory that will be treated as the root during linking. Useful for testing and '
+            'bundling extracted packages that won\t run without a chroot.'
+        ),
+    )
+
     parser.add_argument('-o', '--output', metavar='OUTPUT_FILE',
         default=None,
         help=(
