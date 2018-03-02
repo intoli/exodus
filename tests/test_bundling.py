@@ -26,6 +26,16 @@ fizz_buzz_glibc_64 = os.path.join(chroot, 'bin', 'fizz-buzz-glibc-64')
 fizz_buzz_musl_64 = os.path.join(chroot, 'bin', 'fizz-buzz-musl-64')
 
 
+def test_bundle_hash():
+    bundle = Bundle(chroot=chroot)
+    hashes = [bundle.hash]
+    for filename in [fizz_buzz_glibc_32, fizz_buzz_glibc_64, fizz_buzz_musl_64]:
+        bundle.add_file(filename)
+        hashes.append(bundle.hash)
+    assert len(hashes) == len(set(hashes)), 'All of the hashes should be unique.'
+    assert all(len(hash) == 64 for hash in hashes), 'All of the hashes should have length 64.'
+
+
 @pytest.mark.parametrize('path,expected_file_count', [
     (fizz_buzz_glibc_32, 3),
     (fizz_buzz_glibc_64, 3),
