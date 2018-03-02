@@ -528,6 +528,11 @@ class File(object):
         # than executables without entry points. There will clearly be exceptions.
         return False
 
+    @stored_property
+    def source(self):
+        """str: The relative path for the source of the actual file contents."""
+        return os.path.relpath(self.path, '/')
+
 
 class Bundle(object):
     """A collection of files to be included in a bundle and utilities for creating bundles.
