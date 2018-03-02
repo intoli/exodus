@@ -88,16 +88,20 @@ def test_bytes_to_int(int, bytes, byteorder):
     assert bytes_to_int(bytes, byteorder=byteorder) == int, 'Byte conversion should work.'
 
 
-def test_create_unpackaged_bundle():
+@pytest.mark.parametrize('fizz_buzz', [
+    (fizz_buzz_glibc_32),
+    (fizz_buzz_glibc_64),
+])
+def test_create_unpackaged_bundle(fizz_buzz):
     """This tests that the packaged executable runs as expected. At the very least, this
     tests that the symbolic links and launcher are functioning correctly. Unfortunately,
     it doesn't really test the linker overrides unless the required libraries are not
     present on the current system. FWIW, the CircleCI docker image being used is
     incompatible, so the continuous integration tests are more meaningful."""
     root_directory = create_unpackaged_bundle(
-        rename=[], executables=[fizz_buzz_glibc_32], chroot=chroot)
+        rename=[], executables=[fizz_buzz], chroot=chroot)
     try:
-        binary_path = os.path.join(root_directory, 'bin', os.path.basename(fizz_buzz_glibc_32))
+        binary_path = os.path.join(root_directory, 'bin', os.path.basename(fizz_buzz))
 
         process = Popen([binary_path], stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
