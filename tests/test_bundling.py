@@ -10,8 +10,6 @@ from exodus_bundler.bundling import File
 from exodus_bundler.bundling import bytes_to_int
 from exodus_bundler.bundling import create_unpackaged_bundle
 from exodus_bundler.bundling import detect_elf_binary
-from exodus_bundler.bundling import find_all_library_dependencies
-from exodus_bundler.bundling import find_direct_library_dependencies
 from exodus_bundler.bundling import parse_dependencies_from_ldd_output
 from exodus_bundler.bundling import resolve_binary
 from exodus_bundler.bundling import run_ldd
@@ -42,7 +40,7 @@ def test_create_unpackaged_bundle():
     it doesn't really test the linker overrides unless the required libraries are not
     present on the current system. FWIW, the CircleCI docker image being used is
     incompatible, so the continuous integration tests are more meaningful."""
-    root_directory = create_unpackaged_bundle(rename=[], executables=[fizz_buzz_glibc_32], ldd=ldd)
+    root_directory = create_unpackaged_bundle(rename=[], executables=[fizz_buzz_glibc_32])
     try:
         binary_path = os.path.join(root_directory, 'bin', os.path.basename(fizz_buzz_glibc_32))
 
@@ -122,21 +120,6 @@ def test_file_hash():
     # Found by executing `sha256sum fizz-buzz`.
     expected_hash = 'd54ab4714215d7822bf490df5cdf49bc3f32b4c85a439b109fc7581355f9d9c5'
     assert File(fizz_buzz_glibc_32).hash == expected_hash, 'Hashes should match.'
-
-
-def test_find_all_library_dependencies():
-    all_dependencies = find_all_library_dependencies(ldd, fizz_buzz_glibc_32)
-    direct_dependencies = find_direct_library_dependencies(ldd, fizz_buzz_glibc_32)
-    assert set(direct_dependencies).issubset(all_dependencies), \
-        'The direct dependencies should be a subset of all dependencies.'
-
-
-def test_find_direct_library_dependencies():
-    dependencies = find_direct_library_dependencies(ldd, fizz_buzz_glibc_32)
-    assert all(dependency.startswith('/') for dependency in dependencies), \
-        'Dependencies should be absolute paths.'
-    assert any('libc.so' in line for line in run_ldd(ldd, fizz_buzz_glibc_32)), \
-        '"libc" was not found as a direct dependency of the executable.'
 
 
 @pytest.mark.parametrize('filename_prefix', [

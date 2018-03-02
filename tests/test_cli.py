@@ -13,7 +13,6 @@ from exodus_bundler.cli import parse_args
 
 parent_directory = os.path.dirname(os.path.realpath(__file__))
 chroot = os.path.join(parent_directory, 'data', 'binaries', 'chroot')
-ldd_path = os.path.join(chroot, 'bin', 'ldd')
 fizz_buzz_path = os.path.join(chroot, 'bin', 'fizz-buzz-glibc-32')
 
 
@@ -78,7 +77,7 @@ def test_quiet_and_verbose_flags():
 def test_writing_bundle_to_disk():
     f, filename = tempfile.mkstemp(suffix='.sh')
     os.close(f)
-    args = ['--ldd', ldd_path, '--output', filename, fizz_buzz_path]
+    args = ['--output', filename, fizz_buzz_path]
     try:
         returncode, stdout, stderr = run_exodus(args)
         assert returncode == 0, 'Exodus should have exited with a success status code, but didn\'t.'
@@ -91,7 +90,7 @@ def test_writing_bundle_to_disk():
 
 
 def test_writing_bundle_to_stdout():
-    args = ['--ldd', ldd_path, '--output', '-', fizz_buzz_path]
+    args = ['--output', '-', fizz_buzz_path]
     returncode, stdout, stderr = run_exodus(args)
     assert returncode == 0, 'Exodus should have exited with a success status code, but didn\'t.'
     assert stdout.startswith('#! /bin/sh'), stderr
@@ -100,7 +99,7 @@ def test_writing_bundle_to_stdout():
 def test_writing_tarball_to_disk():
     f, filename = tempfile.mkstemp(suffix='.tgz')
     os.close(f)
-    args = ['--ldd', ldd_path, '--output', filename, '--tarball', fizz_buzz_path]
+    args = ['--output', filename, '--tarball', fizz_buzz_path]
     try:
         returncode, stdout, stderr = run_exodus(args)
         assert returncode == 0, 'Exodus should have exited with a success status code, but didn\'t.'
@@ -113,7 +112,7 @@ def test_writing_tarball_to_disk():
 
 
 def test_writing_tarball_to_stdout():
-    args = ['--ldd', ldd_path, '--output', '-', '--tarball', fizz_buzz_path]
+    args = ['--output', '-', '--tarball', fizz_buzz_path]
     returncode, stdout, stderr = run_exodus(args, universal_newlines=False)
     assert returncode == 0, 'Exodus should have exited with a success status code, but didn\'t.'
     stream = io.BytesIO(stdout)

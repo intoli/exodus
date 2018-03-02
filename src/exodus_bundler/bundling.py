@@ -35,14 +35,14 @@ def bytes_to_int(bytes, byteorder='big'):
     return sum(int(char) * 256 ** i for (i, char) in enumerate(chars))
 
 
-def create_bundle(executables, output, tarball=False, rename=[], ldd='ldd'):
+def create_bundle(executables, output, tarball=False, rename=[]):
     """Handles the creation of the full bundle."""
     # Initialize these ahead of time so they're always available for error handling.
     output_filename, output_file, root_directory = None, None, None
     try:
 
         # Create a temporary unpackaged bundle for the executables.
-        root_directory = create_unpackaged_bundle(executables, rename=rename, ldd=ldd)
+        root_directory = create_unpackaged_bundle(executables, rename=rename)
 
         # Populate the filename template.
         output_filename = render_template(output,
@@ -91,7 +91,7 @@ def create_bundle(executables, output, tarball=False, rename=[], ldd='ldd'):
                 os.chmod(output_filename, st.st_mode | stat.S_IEXEC)
 
 
-def create_unpackaged_bundle(executables, rename=[], ldd='ldd'):
+def create_unpackaged_bundle(executables, rename=[]):
     """Creates a temporary directory containing the unpackaged contents of the bundle."""
     root_directory = tempfile.mkdtemp(prefix='exodus-bundle-')
     try:
@@ -186,24 +186,6 @@ def detect_elf_binary(filename):
         first_four_bytes = f.read(4)
 
     return first_four_bytes == b'\x7fELF'
-
-
-def find_all_library_dependencies(ldd, binary):
-    """Finds all libraries that a binary directly or indirectly links to."""
-    all_dependencies = set()
-    unprocessed_dependencies = set(find_direct_library_dependencies(ldd, binary))
-    while len(unprocessed_dependencies):
-        all_dependencies |= unprocessed_dependencies
-        new_dependencies = set()
-        for dependency in unprocessed_dependencies:
-            new_dependencies |= set(find_direct_library_dependencies(ldd, dependency))
-        unprocessed_dependencies = new_dependencies - all_dependencies
-    return list(all_dependencies)
-
-
-def find_direct_library_dependencies(ldd, binary):
-    """Finds the libraries that a binary directly links to."""
-    return parse_dependencies_from_ldd_output(run_ldd(ldd, binary))
 
 
 def parse_dependencies_from_ldd_output(content):
