@@ -505,12 +505,14 @@ class Bundle(object):
 
         Args:
             working_directory (string, optional): The location where the bundle will be created on
-                disk. A temporary directory will be constructed if one is not specified, but this
-                will only happen after the first write is attempted.
+                disk. A temporary directory will be constructed if specified as `True`. If left as
+                `None`, some methods and properties will raise errors.
             chroot (str, optional): If specified, all absolute paths will be treated as being
                 relative to this root (mainly useful for testing).
         """
         self.working_directory = working_directory
+        if working_directory is True:
+            self.working_directory = tempfile.mkdtemp(prefix='exodus-bundle-')
         self.chroot = chroot
         self.files = set()
 
