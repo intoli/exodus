@@ -348,6 +348,10 @@ class Elf(object):
                 assert self.linker is None, 'More than one linker found.'
                 self.linker = segment[:-1].decode('ascii')
 
+    def __hash__(self):
+        """Defines a hash for the object so it can be used in sets."""
+        return hash(self.path)
+
 
 class File(object):
     """Represents a file on disk and provides access to relevant properties and actions.
