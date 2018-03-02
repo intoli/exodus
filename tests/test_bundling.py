@@ -71,8 +71,12 @@ def test_elf_bits(fizz_buzz, bits):
         'The fizz buzz executable should be %d-bit.' % bits
 
 
-def test_elf_direct_dependencies():
-    fizz_buzz_elf = Elf(fizz_buzz_glibc_32, chroot=chroot)
+@pytest.mark.parametrize('fizz_buzz', [
+    (fizz_buzz_glibc_32),
+    (fizz_buzz_glibc_64),
+])
+def test_elf_direct_dependencies(fizz_buzz):
+    fizz_buzz_elf = Elf(fizz_buzz, chroot=chroot)
     dependencies = fizz_buzz_elf.direct_dependencies
     assert all(file.path.startswith(chroot) for file in dependencies), \
         'All dependencies should be located within the chroot.'
