@@ -22,6 +22,7 @@ chroot = os.path.join(parent_directory, 'data', 'binaries', 'chroot')
 ldd = os.path.join(chroot, 'bin', 'ldd')
 fizz_buzz_glibc_32 = os.path.join(chroot, 'bin', 'fizz-buzz-glibc-32')
 fizz_buzz_glibc_64 = os.path.join(chroot, 'bin', 'fizz-buzz-glibc-64')
+fizz_buzz_musl_64 = os.path.join(chroot, 'bin', 'fizz-buzz-musl-64')
 
 
 @pytest.mark.parametrize('int,bytes,byteorder', [
@@ -62,6 +63,7 @@ def test_detect_elf_binary():
 @pytest.mark.parametrize('fizz_buzz,bits', [
     (fizz_buzz_glibc_32, 32),
     (fizz_buzz_glibc_64, 64),
+    (fizz_buzz_musl_64, 64),
 ])
 def test_elf_bits(fizz_buzz, bits):
     fizz_buzz_elf = Elf(fizz_buzz)
@@ -85,21 +87,30 @@ def test_elf_dependencies(fizz_buzz):
 @pytest.mark.parametrize('fizz_buzz', [
     (fizz_buzz_glibc_32),
     (fizz_buzz_glibc_64),
+    (fizz_buzz_musl_64),
 ])
 def test_elf_direct_dependencies(fizz_buzz):
     fizz_buzz_elf = Elf(fizz_buzz, chroot=chroot)
     dependencies = fizz_buzz_elf.direct_dependencies
     assert all(file.path.startswith(chroot) for file in dependencies), \
         'All dependencies should be located within the chroot.'
-    assert len(dependencies) == 2, 'The linker and libc should be the only dependencies.'
-    assert any('libc.so' in file.path for file in dependencies), \
-        '"libc" was not found as a direct dependency of the executable.'
+    assert len(dependencies), 'There should be at least one dependency.'
+
+    # These don't apply to the musl binary.
+    if 'glib' in fizz_buzz:
+        assert len(dependencies) == 2, 'The linker and libc should be the only dependencies.'
+        assert any('libc.so' in file.path for file in dependencies), \
+            '"libc" was not found as a direct dependency of the executable.'
 
 
-def test_elf_linker():
+@pytest.mark.parametrize('fizz_buzz,expected_linker', [
+    (fizz_buzz_glibc_32, '/lib/ld-linux.so.2'),
+    (fizz_buzz_glibc_64, '/lib64/ld-linux-x86-64.so.2'),
+    (fizz_buzz_musl_64, '/lib/ld-musl-x86_64.so.1'),
+])
+def test_elf_linker(fizz_buzz, expected_linker):
     # Found by running `readelf -l fizz-buzz`.
-    expected_linker = '/lib/ld-linux.so.2'
-    fizz_buzz_elf = Elf(fizz_buzz_glibc_32)
+    fizz_buzz_elf = Elf(fizz_buzz)
     assert fizz_buzz_elf.linker == expected_linker, \
         'The correct linker should be extracted from the ELF program header.'
 
