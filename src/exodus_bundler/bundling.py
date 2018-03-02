@@ -491,6 +491,11 @@ class File(object):
         with open(self.path, 'rb') as f:
             return hashlib.sha256(f.read()).hexdigest()
 
+    @stored_property
+    def requires_launcher(self):
+        """bool: Whether a launcher is necessary for this file."""
+        return bool(self.elf and self.elf.linker)
+
 
 class Bundle(object):
     """A collection of files to be included in a bundle and utilities for creating bundles.
