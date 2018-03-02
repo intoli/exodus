@@ -365,6 +365,9 @@ class Elf(object):
         """Defines a hash for the object so it can be used in sets."""
         return hash(self.path)
 
+    def __repr__(self):
+        return '<Elf(path="%s")>' % self.path
+
     @stored_property
     def direct_dependencies(self):
         """Runs the file's linker and returns a set of the dependencies as `File` instances."""
@@ -428,6 +431,9 @@ class File(object):
             self.elf = Elf(path)
         except InvalidElfBinaryError:
             self.elf = None
+
+    def __repr__(self):
+        return '<File(path="%s")>' % self.path
 
     @stored_property
     def hash(self):
