@@ -361,6 +361,9 @@ class Elf(object):
                 if chroot:
                     self.linker = os.path.join(chroot, os.path.relpath(self.linker, '/'))
 
+    def __eq__(self, other):
+        return isinstance(other, Elf) and self.path == self.path
+
     def __hash__(self):
         """Defines a hash for the object so it can be used in sets."""
         return hash(self.path)
@@ -434,6 +437,10 @@ class File(object):
         except InvalidElfBinaryError:
             self.elf = None
         self.chroot = chroot
+
+    def __eq__(self, other):
+        return isinstance(other, File) and self.path == self.path and \
+            self.entry_point == self.entry_point
 
     def __repr__(self):
         return '<File(path="%s")>' % self.path
