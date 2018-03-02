@@ -14,7 +14,7 @@ from exodus_bundler.cli import parse_args
 parent_directory = os.path.dirname(os.path.realpath(__file__))
 chroot = os.path.join(parent_directory, 'data', 'binaries', 'chroot')
 ldd_path = os.path.join(chroot, 'bin', 'ldd')
-fizz_buzz_path = os.path.join(chroot, 'bin', 'fizz-buzz')
+fizz_buzz_path = os.path.join(chroot, 'bin', 'fizz-buzz-glibc-32')
 
 
 def run_exodus(args, **options):
@@ -106,7 +106,7 @@ def test_writing_tarball_to_disk():
         assert returncode == 0, 'Exodus should have exited with a success status code, but didn\'t.'
         assert tarfile.is_tarfile(filename), stderr
         with tarfile.open(filename, mode='r:gz') as f_in:
-            assert 'exodus/bin/fizz-buzz' in f_in.getnames()
+            assert 'exodus/bin/fizz-buzz-glibc-32' in f_in.getnames()
     finally:
         if os.path.exists(filename):
             os.unlink(filename)
@@ -118,4 +118,4 @@ def test_writing_tarball_to_stdout():
     assert returncode == 0, 'Exodus should have exited with a success status code, but didn\'t.'
     stream = io.BytesIO(stdout)
     with tarfile.open(fileobj=stream, mode='r:gz') as f:
-        assert 'exodus/bin/fizz-buzz' in f.getnames(), stderr
+        assert 'exodus/bin/fizz-buzz-glibc-32' in f.getnames(), stderr
