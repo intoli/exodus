@@ -219,7 +219,7 @@ def test_file_hash():
     (fizz_buzz_musl_64),
 ])
 def test_file_requires_launcher(fizz_buzz):
-    file = File(fizz_buzz)
+    file = File(fizz_buzz, chroot=chroot)
     assert file.requires_launcher, 'Fizz buzz should require a launcher.'
     assert all(not dependency.requires_launcher for dependency in file.elf.dependencies), \
         'All of the dependencies should not require launchers.'
