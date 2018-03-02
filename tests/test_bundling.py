@@ -50,6 +50,21 @@ def test_bundle_add_file(path, expected_file_count):
         'The bundle should include %d files.' % expected_file_count
 
 
+def test_bundle_delete_working_directory():
+    bundle = Bundle()
+    assert bundle.working_directory is None, \
+        'A directory should only be created if passed `working_directory=True`.'
+    bundle = Bundle(working_directory=True)
+    working_directory = bundle.working_directory
+    assert os.path.exists(working_directory), \
+        'A working directory should have been created.'
+    bundle.delete_working_directory()
+    assert not os.path.exists(working_directory), \
+        'The working directory should have been deleted.'
+    assert bundle.working_directory is None, \
+        'The working directory should have been cleared after deletion.'
+
+
 @pytest.mark.parametrize('int,bytes,byteorder', [
     (1234567890, b'\xd2\x02\x96I\x00\x00\x00\x00', 'little'),
     (1234567890, b'\x00\x00\x00\x00I\x96\x02\xd2', 'big'),

@@ -534,6 +534,11 @@ class Bundle(object):
         if file.elf:
             self.files |= file.elf.dependencies
 
+    def delete_working_directory(self):
+        """Recursively deletes the working directory."""
+        shutil.rmtree(self.working_directory)
+        self.working_directory = None
+
     @property
     def hash(self):
         """str: Computes a hash based on the current contents of the bundle."""
