@@ -531,3 +531,10 @@ class Bundle(object):
         self.files.add(file)
         if file.elf:
             self.files |= file.elf.dependencies
+
+    @property
+    def hash(self):
+        """str: Computes a hash based on the current contents of the bundle."""
+        file_hashes = sorted(file.hash for file in self.files)
+        combined_hashes = '\n'.join(file_hashes).encode('utf-8')
+        return hashlib.sha256(combined_hashes).hexdigest()
