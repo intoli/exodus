@@ -124,14 +124,8 @@ def create_unpackaged_bundle(executables, rename=[], ldd='ldd'):
             bundle_lib_directory = os.path.join(bundle_directory, 'lib')
             os.makedirs(bundle_lib_directory)
 
-            # Create `File` instances for all of the library dependencies.
-            dependency_files = set(
-                File(dependency)
-                for dependency in find_all_library_dependencies(ldd, executable_file.path)
-            )
-
             # Copy over the library dependencies and link them.
-            for dependency_file in dependency_files:
+            for dependency_file in executable_file.elf.dependencies:
                 # Create the `lib/{hash}` library file.
                 dependency_name = os.path.basename(dependency_file.path)
                 dependency_path = os.path.join(lib_directory, dependency_file.hash)
@@ -156,12 +150,7 @@ def create_unpackaged_bundle(executables, rename=[], ldd='ldd'):
             shutil.copy(executable_file.path, bundle_executable_path)
 
             # Construct the launcher.
-            linker_candidates = list(filter(lambda candidate: candidate.startswith('ld-'), (
-                os.path.basename(dependency_file.path) for dependency_file in dependency_files
-            )))
-            assert len(linker_candidates) > 0, 'No linker candidates found.'
-            assert len(linker_candidates) < 2, 'Multiple linker candidates found.'
-            [linker] = linker_candidates
+            linker = os.path.basename(executable_file.elf.linker)
             # Try a c launcher first and fallback.
             try:
                 launcher_path = '%s-launcher' % bundle_executable_path
@@ -396,7 +385,6 @@ class Elf(object):
         # extract the real path from the trace output. Even if it were here twice, it would be
         # deduplicated though the use of a set.
         filenames = parse_dependencies_from_ldd_output(combined_output) + [linker]
-        print(filenames)
         return set(File(filename, chroot=self.chroot) for filename in filenames)
 
     @stored_property
@@ -404,18 +392,12 @@ class Elf(object):
         """Run's the files' linker iteratively and returns a set of all library dependencies."""
         all_dependencies = set()
         unprocessed_dependencies = set(self.direct_dependencies)
-        i = 0
         while len(unprocessed_dependencies):
-            print(len(all_dependencies))
-            i += 1
-            if i > 100:
-                assert False
             all_dependencies |= unprocessed_dependencies
             new_dependencies = set()
             for dependency in unprocessed_dependencies:
                 if dependency.elf:
                     new_dependencies |= set(dependency.elf.find_direct_dependencies(self.linker))
-            print(new_dependencies, all_dependencies)
             unprocessed_dependencies = new_dependencies - all_dependencies
         return all_dependencies
 
