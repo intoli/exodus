@@ -29,7 +29,7 @@ fizz_buzz_glibc_32 = os.path.join(chroot, 'bin', 'fizz-buzz-glibc-32')
     (1234567890, b'\xd2\x02\x96I\x00\x00\x00\x00', 'little'),
     (1234567890, b'\x00\x00\x00\x00I\x96\x02\xd2', 'big'),
     (9876543210, b'\xea\x16\xb0L\x02\x00\x00\x00', 'little'),
-    (9876543210, b'\x00\x00\x00\x02L\xb0\x16\xea', 'big')
+    (9876543210, b'\x00\x00\x00\x02L\xb0\x16\xea', 'big'),
 ])
 def test_bytes_to_int(int, bytes, byteorder):
     assert bytes_to_int(bytes, byteorder=byteorder) == int, 'Byte conversion should work.'
