@@ -33,6 +33,16 @@ def parse_args(args=None, namespace=None):
         ),
     )
 
+    parser.add_argument('-a', '--add', '--additional-file', metavar='DEPENDENCY', action='append',
+        default=[],
+        help=(
+            'Specifies an additional file to include in the bundle, useful for adding '
+            'programatically loaded libraries and other non-library dependencies. '
+            'The argument can be used more than once to include multiple files, and '
+            'directories will be included recursively.'
+        ),
+    )
+
     parser.add_argument('-o', '--output', metavar='OUTPUT_FILE',
         default=None,
         help=(

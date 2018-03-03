@@ -35,14 +35,14 @@ def bytes_to_int(bytes, byteorder='big'):
     return sum(int(char) * 256 ** i for (i, char) in enumerate(chars))
 
 
-def create_bundle(executables, output, tarball=False, rename=[], chroot=None):
+def create_bundle(executables, output, tarball=False, rename=[], chroot=None, add=[]):
     """Handles the creation of the full bundle."""
     # Initialize these ahead of time so they're always available for error handling.
     output_filename, output_file, root_directory = None, None, None
     try:
 
         # Create a temporary unpackaged bundle for the executables.
-        root_directory = create_unpackaged_bundle(executables, rename=rename, chroot=chroot)
+        root_directory = create_unpackaged_bundle(executables, rename=rename, chroot=chroot, add=add)
 
         # Populate the filename template.
         output_filename = render_template(output,
@@ -84,14 +84,13 @@ def create_bundle(executables, output, tarball=False, rename=[], chroot=None):
         if root_directory:
             shutil.rmtree(root_directory)
         if output_file and output_filename:
-            if output_filename == '-':
-                output_file.close()
-            else:
+            output_file.close()
+            if not tarball and output_filename not in ['-', '/dev/null']:
                 st = os.stat(output_filename)
                 os.chmod(output_filename, st.st_mode | stat.S_IEXEC)
 
 
-def create_unpackaged_bundle(executables, rename=[], chroot=None):
+def create_unpackaged_bundle(executables, rename=[], chroot=None, add=[]):
     """Creates a temporary directory containing the unpackaged contents of the bundle."""
     bundle = Bundle(chroot=chroot, working_directory=True)
     try:
@@ -102,9 +101,13 @@ def create_unpackaged_bundle(executables, rename=[], chroot=None):
         # Pad the rename's with `True` so that `entry_point` can be specified.
         entry_points = rename + [True for i in range(len(executables) - len(rename))]
 
-        # Populate the bundle with files.
+        # Populate the bundle with main executable files and their dependencies.
         for (executable, entry_point) in zip(executables, entry_points):
             bundle.add_file(executable, entry_point=entry_point)
+
+        # Add "additional files" specified with the `--add` option.
+        for filename in add:
+            bundle.add_file(filename)
 
         bundle.create_bundle()
 
