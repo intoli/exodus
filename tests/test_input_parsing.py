@@ -1,11 +1,20 @@
 import os
 
+from exodus_bundler.input_parsing import extract_exec_filename
 from exodus_bundler.input_parsing import extract_filenames
 
 
 parent_directory = os.path.dirname(os.path.realpath(__file__))
 strace_output_directory = os.path.join(parent_directory, 'data', 'strace-output')
 exodus_strace = os.path.join(strace_output_directory, 'exodus-output.txt')
+
+
+def test_extract_exec_filename():
+    line = 'execve("/usr/bin/ls", ["ls"], 0x7ffea775ad70 /* 113 vars */) = 0'
+    assert extract_exec_filename(line) == '/usr/bin/ls', \
+        'It should have extracted the path to the ls executable.'
+    assert extract_exec_filename('blah') is None, \
+        'It should return `None` when there is no match.'
 
 
 def test_extract_no_filenames():
