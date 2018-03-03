@@ -5,7 +5,7 @@ import sys
 from exodus_bundler import root_logger
 from exodus_bundler.bundling import create_bundle
 from exodus_bundler.errors import FatalError
-from exodus_bundler.input_parsing import extract_filenames
+from exodus_bundler.input_parsing import extract_paths
 
 
 logger = logging.getLogger(__name__)
@@ -128,7 +128,7 @@ def main(args=None, namespace=None):
 
     # Allow piping in additional files.
     if not sys.stdin.isatty():
-        args['add'] += extract_filenames(sys.stdin.read())
+        args['add'] += extract_paths(sys.stdin.read())
 
     # Create the bundle with all of the arguments.
     try:

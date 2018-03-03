@@ -10,7 +10,7 @@ exec_methods = [
 ]
 
 
-def extract_exec_filename(line):
+def extract_exec_path(line):
     """Parse a line of strace output and returns the file being executed."""
     for method in exec_methods:
         prefix = method + '("'
@@ -22,29 +22,29 @@ def extract_exec_filename(line):
     return None
 
 
-def extract_filenames(content):
-    """Parses filenames from a piped input.
+def extract_paths(content):
+    """Parses paths from a piped input.
 
     Args:
         content (str): The raw input, can be either a list of files,
             or the output of the strace command.
     Returns:
-        A list of filenames.
+        A list of paths.
     """
     lines = [line.strip() for line in content.splitlines() if len(line.strip())]
     if not len(lines):
         return lines
 
     # The strace output will start with the exec call of its argument.
-    strace_mode = extract_exec_filename(lines[0]) is not None
+    strace_mode = extract_exec_path(lines[0]) is not None
     if not strace_mode:
         return lines
 
     # Extract files from `open()`, `openat()`, and `exec()` calls.
-    filenames = []
+    paths = []
     for line in lines:
-        filename = extract_exec_filename(line)
-        if filename:
-            filenames.append(filename)
+        path = extract_exec_path(line)
+        if path:
+            paths.append(path)
 
-    return filenames
+    return paths
