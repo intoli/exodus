@@ -42,7 +42,8 @@ def create_bundle(executables, output, tarball=False, rename=[], chroot=None, ad
     try:
 
         # Create a temporary unpackaged bundle for the executables.
-        root_directory = create_unpackaged_bundle(executables, rename=rename, chroot=chroot, add=add)
+        root_directory = create_unpackaged_bundle(
+            executables, rename=rename, chroot=chroot, add=add)
 
         # Populate the filename template.
         output_filename = render_template(output,
