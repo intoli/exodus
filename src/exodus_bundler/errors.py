@@ -11,3 +11,8 @@ class InvalidElfBinaryError(FatalError):
 class MissingFileError(FatalError):
     """Signifies that a file was not found."""
     pass
+
+
+class UnexpectedDirectoryError(FatalError):
+    """Signifies that a path was unexpectedly a directory."""
+    pass
