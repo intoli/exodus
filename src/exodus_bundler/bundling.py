@@ -435,8 +435,9 @@ class File(object):
         relative_destination_path = os.path.relpath(destination_path, source_parent)
         executable = relative_destination_path
 
+        original_file_parent = os.path.dirname(self.path)
         linker_file = File(self.elf.linker, chroot=self.chroot, library=True)
-        relative_linker_path = os.path.relpath(linker_file.path, source_parent)
+        relative_linker_path = os.path.relpath(linker_file.path, original_file_parent)
         linker = relative_linker_path
 
         ld_library_path = '/lib64:/usr/lib64:/lib/:/usr/lib:/lib32/:/usr/lib32/:'
@@ -452,7 +453,7 @@ class File(object):
                 directory = os.path.join(self.chroot, os.path.relpath(directory, '/'))
 
             # Convert it into a path relative to the launcher/source.
-            relative_library_path = os.path.relpath(directory, source_parent)
+            relative_library_path = os.path.relpath(directory, original_file_parent)
             relative_library_paths.append(relative_library_path)
         library_path = ':'.join(relative_library_paths)
 
