@@ -35,6 +35,22 @@ def run_exodus(args, **options):
     return process.returncode, stdout, stderr
 
 
+def test_adding_additional_files(capsys):
+    args = ['--chroot', chroot, '--output', '-', '--tarball', fizz_buzz_glibc_32]
+    stdin = '\n'.join((fizz_buzz_glibc_32_exe, fizz_buzz_glibc_64))
+    returncode, stdout, stderr = run_exodus(args, universal_newlines=False, stdin=stdin)
+    assert returncode == 0, 'Exodus should have exited with a success status code, but didn\'t.'
+    stream = io.BytesIO(stdout)
+    with tarfile.open(fileobj=stream, mode='r:gz') as f:
+        names = f.getnames()
+        assert 'exodus/bin/fizz-buzz-glibc-32' in names, stderr
+        # These shouldn't be entrypoints, but should be included
+        assert 'exodus/bin/fizz-buzz-glibc-32-exe' not in names, stderr
+        assert 'exodus/bin/fizz-buzz-glibc-64' not in names, stderr
+        assert any(fizz_buzz_glibc_32_exe in name for name in names), stderr
+        assert any(fizz_buzz_glibc_64 in name for name in names), stderr
+
+
 def test_logging_outputs(capsys):
     # There should be no output before configuring the logger.
     logger.error('error')
