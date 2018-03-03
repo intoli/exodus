@@ -52,6 +52,7 @@ def test_extract_raw_paths():
     assert set(input_paths) == set(extracted_paths), \
         'The paths should have been extracted without the whitespace.'
 
+
 def test_extract_strace_paths():
     with open(exodus_strace, 'r') as f:
         content = f.read()
@@ -59,6 +60,10 @@ def test_extract_strace_paths():
     expected_paths = [
         # `execve()` call
         '/home/sangaline/projects/exodus/.env/bin/exodus',
+        # `openat()` call
+        '/usr/lib/libpthread.so.0',
+        # `open()` call
+        '/usr/lib/gconv/gconv-modules',
     ]
 
     for path in expected_paths:

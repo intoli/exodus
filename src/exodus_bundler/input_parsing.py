@@ -60,7 +60,7 @@ def extract_paths(content):
     # Extract files from `open()`, `openat()`, and `exec()` calls.
     paths = []
     for line in lines:
-        path = extract_exec_path(line)
+        path = extract_exec_path(line) or extract_open_path(line)
         if path:
             paths.append(path)
 
