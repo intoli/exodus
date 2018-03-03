@@ -1,6 +1,7 @@
 import os
 
 from exodus_bundler.input_parsing import extract_exec_path
+from exodus_bundler.input_parsing import extract_open_path
 from exodus_bundler.input_parsing import extract_paths
 
 
@@ -20,6 +21,22 @@ def test_extract_exec_path():
 def test_extract_no_paths():
     input_paths = extract_paths('')
     assert input_paths == [], 'It should return an empty list.'
+
+
+def test_extract_open_path():
+    line = (
+        'openat(AT_FDCWD, "/usr/lib/root/tls/x86_64/libcap.so.2", O_RDONLY|O_CLOEXEC) '
+        '= -1 ENOENT (No such file or directory)'
+    )
+    assert extract_open_path(line) is None, 'Missing files should not return paths.'
+    line = 'open(".", O_RDONLY|O_NONBLOCK|O_CLOEXEC|O_DIRECTORY) = 4'
+    assert extract_open_path(line) is None, 'Opened directories should not return paths.'
+    line = 'open("/usr/lib/locale/locale-archive", O_RDONLY|O_CLOEXEC) = 4'
+    assert extract_open_path(line) == '/usr/lib/locale/locale-archive', \
+        'An open() call should return a path.'
+    line = 'openat(AT_FDCWD, "/usr/lib/libc.so.6", O_RDONLY|O_CLOEXEC) = 4'
+    assert extract_open_path(line) == '/usr/lib/libc.so.6', \
+        'An openat() call relative to the current directory should return a path.'
 
 
 def test_extract_raw_paths():

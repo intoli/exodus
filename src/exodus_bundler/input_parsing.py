@@ -22,6 +22,23 @@ def extract_exec_path(line):
     return None
 
 
+def extract_open_path(line):
+    """Parse a line of strace output and returns the file being opened."""
+    for prefix in ['openat(AT_FDCWD, "', 'open("']:
+        if line.startswith(prefix):
+            parts = line[len(prefix):].split('", ')
+            if len(parts) != 2:
+                continue
+            if 'ENOENT' in parts[1]:
+                continue
+            if 'O_RDONLY' not in parts[1]:
+                continue
+            if 'O_DIRECTORY' in parts[1]:
+                continue
+            return parts[0]
+    return None
+
+
 def extract_paths(content):
     """Parses paths from a piped input.
 
