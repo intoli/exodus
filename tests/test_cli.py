@@ -13,7 +13,10 @@ from exodus_bundler.cli import parse_args
 
 parent_directory = os.path.dirname(os.path.realpath(__file__))
 chroot = os.path.join(parent_directory, 'data', 'binaries', 'chroot')
-fizz_buzz_path = os.path.join(chroot, 'bin', 'fizz-buzz-glibc-32')
+fizz_buzz_glibc_32 = os.path.join(chroot, 'bin', 'fizz-buzz-glibc-32')
+fizz_buzz_glibc_32_exe = os.path.join(chroot, 'bin', 'fizz-buzz-glibc-32-exe')
+fizz_buzz_glibc_64 = os.path.join(chroot, 'bin', 'fizz-buzz-glibc-64')
+fizz_buzz_musl_64 = os.path.join(chroot, 'bin', 'fizz-buzz-musl-64')
 
 
 def run_exodus(args, **options):
@@ -77,7 +80,7 @@ def test_quiet_and_verbose_flags():
 def test_writing_bundle_to_disk():
     f, filename = tempfile.mkstemp(suffix='.sh')
     os.close(f)
-    args = ['--chroot', chroot, '--output', filename, fizz_buzz_path]
+    args = ['--chroot', chroot, '--output', filename, fizz_buzz_glibc_32]
     try:
         returncode, stdout, stderr = run_exodus(args)
         assert returncode == 0, 'Exodus should have exited with a success status code, but didn\'t.'
@@ -90,7 +93,7 @@ def test_writing_bundle_to_disk():
 
 
 def test_writing_bundle_to_stdout():
-    args = ['--chroot', chroot, '--output', '-', fizz_buzz_path]
+    args = ['--chroot', chroot, '--output', '-', fizz_buzz_glibc_32]
     returncode, stdout, stderr = run_exodus(args)
     assert returncode == 0, 'Exodus should have exited with a success status code, but didn\'t.'
     assert stdout.startswith('#! /bin/sh'), stderr
@@ -99,7 +102,7 @@ def test_writing_bundle_to_stdout():
 def test_writing_tarball_to_disk():
     f, filename = tempfile.mkstemp(suffix='.tgz')
     os.close(f)
-    args = ['--chroot', chroot, '--output', filename, '--tarball', fizz_buzz_path]
+    args = ['--chroot', chroot, '--output', filename, '--tarball', fizz_buzz_glibc_32]
     try:
         returncode, stdout, stderr = run_exodus(args)
         assert returncode == 0, 'Exodus should have exited with a success status code, but didn\'t.'
@@ -112,7 +115,7 @@ def test_writing_tarball_to_disk():
 
 
 def test_writing_tarball_to_stdout():
-    args = ['--chroot', chroot, '--output', '-', '--tarball', fizz_buzz_path]
+    args = ['--chroot', chroot, '--output', '-', '--tarball', fizz_buzz_glibc_32]
     returncode, stdout, stderr = run_exodus(args, universal_newlines=False)
     assert returncode == 0, 'Exodus should have exited with a success status code, but didn\'t.'
     stream = io.BytesIO(stdout)
