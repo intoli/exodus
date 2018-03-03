@@ -39,3 +39,12 @@ def extract_filenames(content):
     strace_mode = extract_exec_filename(lines[0]) is not None
     if not strace_mode:
         return lines
+
+    # Extract files from `open()`, `openat()`, and `exec()` calls.
+    filenames = []
+    for line in lines:
+        filename = extract_exec_filename(line)
+        if filename:
+            filenames.append(filename)
+
+    return filenames

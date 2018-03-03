@@ -34,3 +34,16 @@ def test_extract_raw_filenames():
     extracted_filenames = extract_filenames(input_content)
     assert set(input_filenames) == set(extracted_filenames), \
         'The filenames should have been extracted without the whitespace.'
+
+def test_extract_strace_filenames():
+    with open(exodus_strace, 'r') as f:
+        content = f.read()
+    extracted_filenames = extract_filenames(content)
+    expected_filenames = [
+        # `execve()` call
+        '/home/sangaline/projects/exodus/.env/bin/exodus',
+    ]
+
+    for filename in expected_filenames:
+        assert filename in extracted_filenames, \
+            '"%s" should be present in the extracted filenames.' % filename
