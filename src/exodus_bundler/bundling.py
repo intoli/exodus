@@ -287,6 +287,8 @@ class Elf(object):
     def find_direct_dependencies(self, linker=None):
         """Runs the specified linker and returns a set of the dependencies as `File` instances."""
         linker = linker or self.linker
+        if not linker:
+            return set()
         environment = {}
         environment.update(os.environ)
         environment['LD_TRACE_LOADED_OBJECTS'] = '1'
