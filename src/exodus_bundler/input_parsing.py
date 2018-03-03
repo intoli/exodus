@@ -35,6 +35,7 @@ def extract_filenames(content):
     if not len(lines):
         return lines
 
-    strace_mode = lines[0].startswith('execve("')
+    # The strace output will start with the exec call of its argument.
+    strace_mode = extract_exec_filename(lines[0]) is not None
     if not strace_mode:
         return lines
