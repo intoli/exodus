@@ -501,7 +501,11 @@ class File(object):
         if not os.path.exists(source_parent):
             os.makedirs(source_parent)
         relative_destination_path = os.path.relpath(destination_path, source_parent)
-        os.symlink(relative_destination_path, source_path)
+        if os.path.exists(source_path):
+            assert os.path.islink(source_path)
+            assert os.path.realpath(source_path) == relative_destination_path
+        else:
+            os.symlink(relative_destination_path, source_path)
 
         return os.path.normpath(os.path.abspath(source_path))
 
