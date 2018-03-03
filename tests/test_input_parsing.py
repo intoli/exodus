@@ -8,6 +8,11 @@ strace_output_directory = os.path.join(parent_directory, 'data', 'strace-output'
 exodus_strace = os.path.join(strace_output_directory, 'exodus-output.txt')
 
 
+def test_extract_no_filenames():
+    input_filenames = extract_filenames('')
+    assert input_filenames == [], 'It should return an empty list.'
+
+
 def test_extract_raw_filenames():
     input_filenames = [
         '/absolute/path/to/file',
