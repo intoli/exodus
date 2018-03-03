@@ -15,6 +15,7 @@ from subprocess import Popen
 
 from exodus_bundler.errors import InvalidElfBinaryError
 from exodus_bundler.errors import MissingFileError
+from exodus_bundler.errors import UnexpectedDirectoryError
 from exodus_bundler.launchers import CompilerNotFoundError
 from exodus_bundler.launchers import construct_bash_launcher
 from exodus_bundler.launchers import construct_binary_launcher
@@ -366,6 +367,8 @@ class File(object):
             path = resolve_binary(path)
         if not os.path.exists(path):
             raise MissingFileError('The "%s" file was not found.' % path)
+        if os.path.isdir(path):
+            raise UnexpectedDirectoryError('"%s" is a directory, not a file.' % path)
         self.path = os.path.normpath(os.path.abspath(path))
 
         # Set the entry point for the file.
@@ -595,10 +598,20 @@ class Bundle(object):
 
         Args:
             path (str): Can be either an absolute path, relative path, or a binary name in `PATH`.
+                Directories will be included recursively for non-entry point dependencies.
             entry_point (string, optional): The name of the bundle entry point for an executable.
                 If `True`, the executable's basename will be used.
         """
-        file = File(path, entry_point=entry_point, chroot=self.chroot)
+        try:
+            file = File(path, entry_point=entry_point, chroot=self.chroot)
+        except UnexpectedDirectoryError:
+            assert entry_point is None, 'Directories can\'t have entry points.'
+            for root, directories, files in os.walk(path):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    self.add_file(file_path)
+            return
+
         self.files.add(file)
         if file.elf:
             self.files |= file.elf.dependencies
