@@ -33,6 +33,16 @@ def parse_args(args=None, namespace=None):
         ),
     )
 
+    parser.add_argument('-a', '--add', '--additional-file', metavar='DEPENDENCY', action='append',
+        default=[],
+        help=(
+            'Specifies an additional file to include in the bundle, useful for adding '
+            'programatically loaded libraries and other non-library dependencies. '
+            'The argument can be used more than once to include multiple files, and '
+            'directories will be included recursively.'
+        ),
+    )
+
     parser.add_argument('-o', '--output', metavar='OUTPUT_FILE',
         default=None,
         help=(
@@ -114,6 +124,10 @@ def main(args=None, namespace=None):
     quiet, verbose = args.pop('quiet'), args.pop('verbose')
     suppress_stdout = args['output'] == '-'
     configure_logging(quiet=quiet, verbose=verbose, suppress_stdout=suppress_stdout)
+
+    # Allow piping in additional files.
+    if not sys.stdin.isatty():
+        args['add'] += sys.stdin.read().splitlines()
 
     # Create the bundle with all of the arguments.
     try:

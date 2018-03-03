@@ -41,6 +41,17 @@ def test_bundle_add_file(path, expected_file_count):
         'The bundle should include %d files.' % expected_file_count
 
 
+def test_bundle_add_file_recursively():
+    bundle = Bundle(chroot=chroot)
+    assert len(bundle.files) == 0, 'The initial bundle should contain no files.'
+    bundle.add_file(chroot)
+    second_bundle = Bundle(chroot=chroot)
+    for path in [ldd, fizz_buzz_glibc_32, fizz_buzz_glibc_32_exe, fizz_buzz_musl_64]:
+        second_bundle.add_file(path)
+    assert second_bundle.files.issubset(bundle.files), \
+        'All of the executables and their dependencies should be in the first bundle.'
+
+
 def test_bundle_delete_working_directory():
     bundle = Bundle()
     assert bundle.working_directory is None, \
