@@ -125,6 +125,10 @@ def main(args=None, namespace=None):
     suppress_stdout = args['output'] == '-'
     configure_logging(quiet=quiet, verbose=verbose, suppress_stdout=suppress_stdout)
 
+    # Allow piping in additional files.
+    if not sys.stdin.isatty():
+        args['add'] += sys.stdin.read().splitlines()
+
     # Create the bundle with all of the arguments.
     try:
         create_bundle(**args)
