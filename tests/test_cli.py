@@ -21,9 +21,17 @@ fizz_buzz_musl_64 = os.path.join(chroot, 'bin', 'fizz-buzz-musl-64')
 
 def run_exodus(args, **options):
     options['universal_newlines'] = options.get('universal_newlines', True)
+
+    # Allow specifying content to pipe into stdin, with options['stdin']
+    if 'stdin' in options:
+        input = options['stdin'].encode('utf-8')
+        options['stdin'] = subprocess.PIPE
+    else:
+        input = None
+
     process = subprocess.Popen(
         ['exodus'] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **options)
-    stdout, stderr = process.communicate()
+    stdout, stderr = process.communicate(input=input)
     return process.returncode, stdout, stderr
 
 
