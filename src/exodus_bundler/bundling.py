@@ -606,6 +606,10 @@ class File(object):
         if in_lib_directory and not in_bin_directory:
             return False
 
+        # This is a bbfreeze related hack.
+        if os.path.basename(self.path) == 'library.zip':
+            return False
+
         # Most libraries will include `.so` in the filename.
         return re.match('\.so(?:\.|$)')
 
