@@ -22,9 +22,9 @@ jobs:
             python3 -m venv .env
             . .env/bin/activate
             pip install -r development-requirements.txt
-            deactivate
             pip install virtualenv
             virtualenv -p /usr/bin/python2 .env-2
+            deactivate
             . .env-2/bin/activate
             pip install bbfreeze
       - save_cache:
