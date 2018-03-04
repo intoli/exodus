@@ -162,6 +162,25 @@ def resolve_binary(binary):
     return absolute_binary_path
 
 
+def resolve_file_path(path, search_environment_path=False):
+    """Attempts to find a normalized path to a file.
+
+    If the file is not found, or if it is a directory, appropriate exceptions will be thrown.
+
+    Args:
+        path (str): Either a relative or absolute path to a file, or the name of an
+            executable if `search_environment_path` is `True`.
+        search_environment_path (bool): Whether PATH should be used to resolve the file.
+    """
+    if search_environment_path:
+        path = resolve_binary(path)
+    if not os.path.exists(path):
+        raise MissingFileError('The "%s" file was not found.' % path)
+    if os.path.isdir(path):
+        raise UnexpectedDirectoryError('"%s" is a directory, not a file.' % path)
+    return os.path.normpath(os.path.abspath(path))
+
+
 def run_ldd(ldd, binary):
     """Runs `ldd` and gets the combined stdout/stderr output as a list of lines."""
     if not detect_elf_binary(resolve_binary(binary)):
@@ -189,22 +208,25 @@ class Elf(object):
     Attributes:
         bits (int): The number of bits for an ELF binary, either 32 or 64.
         chroot (str): The root directory used when invoking the linker (or `None`).
+        file_factory (function): A function used to create new `File` instances.
         linker (str): The linker/interpreter specified in the program header.
         path (str): The path to the file.
         type (str): The binary type, one of 'relocatable', 'executable', 'shared', or 'core'.
     """
-    def __init__(self, path, chroot=None):
+    def __init__(self, path, chroot=None, file_factory=None):
         """Constructs the `Elf` instance.
 
         Args:
             path (str): The full path to the ELF binary.
             chroot (str, optional): If specified, all absolute paths will be treated as being
                 relative to this root (mainly useful for testing).
+            file_factory (function, optional): A function to use when creating new `File` instances.
         """
         if not os.path.exists(path):
             raise MissingFileError('The "%s" file was not found.' % path)
         self.path = path
         self.chroot = chroot
+        self.file_factory = file_factory or File
 
         with open(path, 'rb') as f:
             # Make sure that this is actually an ELF binary.
@@ -316,7 +338,8 @@ class Elf(object):
         # extract the real path from the trace output. Even if it were here twice, it would be
         # deduplicated though the use of a set.
         filenames = parse_dependencies_from_ldd_output(combined_output) + [linker]
-        return set(File(filename, chroot=self.chroot, library=True) for filename in filenames)
+        return set(self.file_factory(filename, chroot=self.chroot, library=True)
+                   for filename in filenames)
 
     @stored_property
     def dependencies(self):
@@ -349,11 +372,12 @@ class File(object):
         chroot (str): A location to treat as the root during dependency linking (or `None`).
         elf (Elf): A corresponding `Elf` object, or `None` if it is not an ELF formatted file.
         entry_point (str): The name of the bundle entry point for an executable binary (or `None`).
+        file_factory (function): A function used to create new `File` instances.
         library (bool): Specifies that this file is explicitly a shared library.
         path (str): The absolute normalized path to the file on disk.
     """
 
-    def __init__(self, path, entry_point=None, chroot=None, library=False):
+    def __init__(self, path, entry_point=None, chroot=None, library=False, file_factory=None):
         """Constructor for the `File` class.
 
         Note:
@@ -365,15 +389,10 @@ class File(object):
                 If `True`, the executable's basename will be used.
             chroot (str, optional): If specified, all absolute paths will be treated as being
                 relative to this root (mainly useful for testing).
+            file_factory (function, optional): A function to use when creating new `File` instances.
         """
         # Find the full path to the file.
-        if entry_point:
-            path = resolve_binary(path)
-        if not os.path.exists(path):
-            raise MissingFileError('The "%s" file was not found.' % path)
-        if os.path.isdir(path):
-            raise UnexpectedDirectoryError('"%s" is a directory, not a file.' % path)
-        self.path = os.path.normpath(os.path.abspath(path))
+        self.path = resolve_file_path(path, search_environment_path=(entry_point is not None))
 
         # Set the entry point for the file.
         if entry_point is True:
@@ -383,11 +402,12 @@ class File(object):
 
         # Parse an `Elf` object from the file.
         try:
-            self.elf = Elf(path, chroot=chroot)
+            self.elf = Elf(path, chroot=chroot, file_factory=file_factory)
         except InvalidElfBinaryError:
             self.elf = None
 
         self.chroot = chroot
+        self.file_factory = file_factory or File
         self.library = library
 
     def __eq__(self, other):
@@ -445,7 +465,7 @@ class File(object):
         executable = relative_destination_path
 
         original_file_parent = os.path.dirname(self.path)
-        linker_file = File(self.elf.linker, chroot=self.chroot, library=True)
+        linker_file = self.file_factory(self.elf.linker, chroot=self.chroot, library=True)
         relative_linker_path = os.path.relpath(linker_file.path, original_file_parent)
         linker = relative_linker_path
 
@@ -612,7 +632,7 @@ class Bundle(object):
                 If `True`, the executable's basename will be used.
         """
         try:
-            file = File(path, entry_point=entry_point, chroot=self.chroot)
+            file = self.file_factory(path, entry_point=entry_point, chroot=self.chroot)
         except UnexpectedDirectoryError:
             assert entry_point is None, 'Directories can\'t have entry points.'
             for root, directories, files in os.walk(path):
@@ -641,6 +661,34 @@ class Bundle(object):
         """Recursively deletes the working directory."""
         shutil.rmtree(self.working_directory)
         self.working_directory = None
+
+    def file_factory(self, path, entry_point=None, chroot=None, library=False, file_factory=None):
+        """Either creates a new `File`, or updates and returns one from `files`.
+
+        This method can be used in place of `File.__init__()` when it is known that the `File`
+        is going to end up being added to the `Bundle.files` set. The construction of a `File` is
+        quite expensive due to the ELF parsing, so this allows avoiding the construction of `File`
+        objects when an equivalent ones are already present in the set. Additionally, this allows
+        for intelligent merging of properties between `File` objects. For example, a `File` with
+        an entry point should always preserve that entry point, even if the file also gets added
+        using `--add` or some other method without one.
+
+        See the `File.__init__()` method for documentation of the arguments, they're identical.
+        """
+        # Attempt to find an existing file with the same normalize path in `self.files`.
+        path = resolve_file_path(path, search_environment_path=entry_point is not None)
+        file = next((file for file in self.files if file.path == path), None)
+        if file is not None:
+            assert entry_point == file.entry_point or not entry_point or not file.entry_point, \
+                'The entry point property should always persist, but can\'t conflict.'
+            file.entry_point = file.entry_point or entry_point
+            assert chroot == file.chroot, 'The chroot must match.'
+            file.library = file.library or library
+            assert not file.entry_point or not file.library, \
+                'A file can\'t be both an entry point and a library.'
+            return file
+
+        return File(path, entry_point, chroot, library, file_factory)
 
     @property
     def bundle_root(self):

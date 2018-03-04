@@ -13,6 +13,7 @@ from exodus_bundler.bundling import create_unpackaged_bundle
 from exodus_bundler.bundling import detect_elf_binary
 from exodus_bundler.bundling import parse_dependencies_from_ldd_output
 from exodus_bundler.bundling import resolve_binary
+from exodus_bundler.bundling import resolve_file_path
 from exodus_bundler.bundling import run_ldd
 from exodus_bundler.bundling import stored_property
 
@@ -65,6 +66,16 @@ def test_bundle_delete_working_directory():
         'The working directory should have been deleted.'
     assert bundle.working_directory is None, \
         'The working directory should have been cleared after deletion.'
+
+
+def test_bundle_file_factory():
+    bundle = Bundle()
+    bundle.add_file(ldd)
+    # Note that `ldd` is a shell script, and should bring in no dependencies.
+    [file] = bundle.files
+    new_file = bundle.file_factory(ldd)
+    assert new_file is file, \
+        'The same file should be returned instead of making a new one.'
 
 
 def test_bundle_hash():
@@ -285,6 +296,15 @@ def test_resolve_binary():
             'The full binary path was not resolved correctly.'
     finally:
         os.environ['PATH'] = old_path
+
+
+def test_resolve_file_path():
+    with pytest.raises(Exception):
+        resolve_file_path(chroot)
+    with pytest.raises(Exception):
+        resolve_file_path(os.path.join(chroot, 'non-existent-file'))
+    assert os.path.isabs(resolve_file_path(fizz_buzz_glibc_32)), \
+        'The resolved path should be absolute.'
 
 
 def test_run_ldd():
