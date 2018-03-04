@@ -22,12 +22,6 @@ jobs:
             python3 -m venv .env
             . .env/bin/activate
             pip install -r development-requirements.txt
-            pip install virtualenv
-            virtualenv -p /usr/bin/python2 .env-2
-            deactivate
-            . .env-2/bin/activate
-            sudo apt-get install gcc musl musl-tools patchelf python-dev strace
-            pip install bbfreeze
       - save_cache:
           paths:
             - ./.env
@@ -50,12 +44,7 @@ jobs:
           command: |
             . .env-2/bin/activate
             pip install .
-            mv .env-2/lib/python2.7/site-packages/exodus_bundler/cli.py .env-2/lib/python2.7/site-packages/exodus_bundler/exodus.py
-            echo "main()" >> .env-2/lib/python2.7/site-packages/exodus_bundler/exodus.py
-            bbfreeze .env-2/lib/python2.7/site-packages/exodus_bundler/exodus.py
-            cp -r src/exodus_bundler/templates/ dist/
-            strace ./dist/exodus -q gcc 2>&1 | exodus ./dist/exodus --output exodus-x64.sh
-            strace ./dist/exodus -q gcc 2>&1 | exodus ./dist/exodus --tar --output exodus-x64.tgz
+            strace exodus -q gcc 2>&1 | exodus exodus --tar --output exodus-x64.tgz
       - store_artifacts:
           path: htmlcov
           destination: coverage-report
