@@ -22,11 +22,12 @@ parent_directory = os.path.dirname(os.path.realpath(__file__))
 ldd_output_directory = os.path.join(parent_directory, 'data', 'ldd-output')
 chroot = os.path.join(parent_directory, 'data', 'binaries', 'chroot')
 ldd = os.path.join(chroot, 'bin', 'ldd')
+echo_args_glibc_32 = os.path.join(chroot, 'bin', 'echo-args-glibc-32')
+echo_proc_self_exe_glibc_32 = os.path.join(chroot, 'bin', 'echo-proc-self-exe-glibc-32')
 fizz_buzz_glibc_32 = os.path.join(chroot, 'bin', 'fizz-buzz-glibc-32')
 fizz_buzz_glibc_32_exe = os.path.join(chroot, 'bin', 'fizz-buzz-glibc-32-exe')
 fizz_buzz_glibc_64 = os.path.join(chroot, 'bin', 'fizz-buzz-glibc-64')
 fizz_buzz_musl_64 = os.path.join(chroot, 'bin', 'fizz-buzz-musl-64')
-echo_proc_self_exe_glibc_32 = os.path.join(chroot, 'bin', 'echo-proc-self-exe-glibc-32')
 
 
 @pytest.mark.parametrize('path,expected_file_count', [
@@ -130,6 +131,25 @@ def test_create_unpackaged_bundle(fizz_buzz):
         stdout, stderr = process.communicate()
         assert 'FIZZBUZZ' in stdout.decode('utf-8')
         assert len(stderr.decode('utf-8')) == 0
+    finally:
+        assert root_directory.startswith('/tmp/')
+        shutil.rmtree(root_directory)
+
+
+def test_create_unpackaged_bundle_has_correct_args():
+    root_directory = create_unpackaged_bundle(
+        rename=[], executables=[echo_args_glibc_32], chroot=chroot)
+    try:
+        binary_path = os.path.join(root_directory, 'bin', os.path.basename(echo_args_glibc_32))
+
+        process = Popen([binary_path, 'arg1', 'arg2'], stdout=PIPE, stderr=PIPE)
+        stdout, stderr = process.communicate()
+        assert len(stderr.decode('utf-8')) == 0
+        args = stdout.decode('utf-8').split('\n')
+        assert os.path.basename(args[0]) == '%s-x' % os.path.basename(echo_args_glibc_32), \
+            'The value of argv[0] should correspond to the local symlink.'
+        assert args[1] == 'arg1' and args[2] == 'arg2', \
+            'The other arguments should be passed through to the child process.'
     finally:
         assert root_directory.startswith('/tmp/')
         shutil.rmtree(root_directory)
