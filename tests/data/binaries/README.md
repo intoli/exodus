@@ -20,7 +20,7 @@ Additionally, there are two small utilities for echoing command arguments and th
 These can be compiled by running
 
 ```bash
-gcc echo-args.c -m32 -o ./chroot/bin/echo-args-exe-glibc-32
+gcc echo-args.c -m32 -o ./chroot/bin/echo-args-glibc-32
 gcc echo-proc-self-exe.c -m32 -o ./chroot/bin/echo-proc-self-exe-glibc-32
 ```
 
