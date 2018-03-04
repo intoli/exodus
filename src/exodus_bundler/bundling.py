@@ -209,7 +209,7 @@ class Elf(object):
         bits (int): The number of bits for an ELF binary, either 32 or 64.
         chroot (str): The root directory used when invoking the linker (or `None`).
         file_factory (function): A function used to create new `File` instances.
-        linker (str): The linker/interpreter specified in the program header.
+        linker_file (File): The linker/interpreter specified in the program header.
         path (str): The path to the file.
         type (str): The binary type, one of 'relocatable', 'executable', 'shared', or 'core'.
     """
@@ -268,7 +268,7 @@ class Elf(object):
             e_phnum = hex(f.read(2))
 
             # Loop through each program header.
-            self.linker = None
+            self.linker_file = None
             for header_index in range(e_phnum):
                 header_start = e_phoff + header_index * e_phentsize
                 f.seek(header_start)
@@ -296,10 +296,11 @@ class Elf(object):
                 segment = f.read(p_filesz)
                 # It should be null-terminated (b'\x00' in Python 2, 0 in Python 3).
                 assert segment[-1] in [b'\x00', 0], 'The string should be null terminated.'
-                assert self.linker is None, 'More than one linker found.'
-                self.linker = segment[:-1].decode('ascii')
+                assert self.linker_file is None, 'More than one linker found.'
+                linker_path = segment[:-1].decode('ascii')
                 if chroot:
-                    self.linker = os.path.join(chroot, os.path.relpath(self.linker, '/'))
+                    linker_path = os.path.join(chroot, os.path.relpath(linker_path, '/'))
+                self.linker_file = self.file_factory(linker_path, chroot=self.chroot)
 
     def __eq__(self, other):
         return isinstance(other, Elf) and self.path == self.path
@@ -311,11 +312,12 @@ class Elf(object):
     def __repr__(self):
         return '<Elf(path="%s")>' % self.path
 
-    def find_direct_dependencies(self, linker=None):
+    def find_direct_dependencies(self, linker_file=None):
         """Runs the specified linker and returns a set of the dependencies as `File` instances."""
-        linker = linker or self.linker
-        if not linker:
+        linker_file = linker_file or self.linker_file
+        if not linker_file:
             return set()
+        linker_path = linker_file.path
         environment = {}
         environment.update(os.environ)
         environment['LD_TRACE_LOADED_OBJECTS'] = '1'
@@ -331,13 +333,13 @@ class Elf(object):
             environment['LD_LIBRARY_PATH'] = ld_library_path
 
         process = Popen(['ldd', '--inhibit-cache', '--inhibit-rpath', '', self.path],
-                        executable=linker, stdout=PIPE, stderr=PIPE, env=environment)
+                        executable=linker_path, stdout=PIPE, stderr=PIPE, env=environment)
         stdout, stderr = process.communicate()
         combined_output = stdout.decode('utf-8').split('\n') + stderr.decode('utf-8').split('\n')
         # Note that we're explicitly adding the linker because when we invoke it as `ldd` we can't
         # extract the real path from the trace output. Even if it were here twice, it would be
         # deduplicated though the use of a set.
-        filenames = parse_dependencies_from_ldd_output(combined_output) + [linker]
+        filenames = parse_dependencies_from_ldd_output(combined_output) + [linker_path]
         return set(self.file_factory(filename, chroot=self.chroot, library=True)
                    for filename in filenames)
 
@@ -351,7 +353,8 @@ class Elf(object):
             new_dependencies = set()
             for dependency in unprocessed_dependencies:
                 if dependency.elf:
-                    new_dependencies |= set(dependency.elf.find_direct_dependencies(self.linker))
+                    new_dependencies |= set(
+                        dependency.elf.find_direct_dependencies(self.linker_file))
             unprocessed_dependencies = new_dependencies - all_dependencies
         return all_dependencies
 
@@ -465,7 +468,7 @@ class File(object):
         executable = relative_destination_path
 
         original_file_parent = os.path.dirname(self.path)
-        linker_file = self.file_factory(self.elf.linker, chroot=self.chroot, library=True)
+        linker_file = self.elf.linker_file
         relative_linker_path = os.path.relpath(linker_file.path, original_file_parent)
         linker = relative_linker_path
 
@@ -566,7 +569,7 @@ class File(object):
         # as shared libraries, and many mostly-libraries are executable (*e.g.* glibc).
 
         # The easy ones.
-        if self.library or not self.elf or not self.elf.linker or not self.executable:
+        if self.library or not self.elf or not self.elf.linker_file or not self.executable:
             return False
         if self.elf.type == 'executable':
             return True

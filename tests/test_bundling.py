@@ -182,15 +182,15 @@ def test_elf_direct_dependencies(fizz_buzz):
             '"libc" was not found as a direct dependency of the executable.'
 
 
-@pytest.mark.parametrize('fizz_buzz,expected_linker', [
+@pytest.mark.parametrize('fizz_buzz,expected_linker_path', [
     (fizz_buzz_glibc_32, '/lib/ld-linux.so.2'),
     (fizz_buzz_glibc_64, '/lib64/ld-linux-x86-64.so.2'),
     (fizz_buzz_musl_64, '/lib/ld-musl-x86_64.so.1'),
 ])
-def test_elf_linker(fizz_buzz, expected_linker):
+def test_elf_linker(fizz_buzz, expected_linker_path):
     # Found by running `readelf -l fizz-buzz`.
     fizz_buzz_elf = Elf(fizz_buzz)
-    assert fizz_buzz_elf.linker == expected_linker, \
+    assert fizz_buzz_elf.linker_file.path == expected_linker_path, \
         'The correct linker should be extracted from the ELF program header.'
 
 
