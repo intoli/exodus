@@ -8,6 +8,10 @@ import os
 parent_directory = os.path.dirname(os.path.realpath(__file__))
 template_directory = os.path.join(parent_directory, 'templates')
 
+# This is kind of a hack to make the templates accessible using bbfreeze.
+if os.path.dirname(parent_directory) == 'library.zip' and not os.path.exists(template_directory):
+    template_directory = os.normpath(os.path.join(parent_directory, '..', '..', 'templates'))
+
 
 def render_template(string, **context):
     for key, value in context.items():
