@@ -26,6 +26,7 @@ jobs:
             virtualenv -p /usr/bin/python2 .env-2
             deactivate
             . .env-2/bin/activate
+            sudo apt-get install patchelf python-dev
             pip install bbfreeze
       - save_cache:
           paths:
@@ -47,7 +48,11 @@ jobs:
       - run:
           name: Build Self-Hosted Bundle
             . .env-2/bin/activate
-            python setup.py bdist_bbfreeze
+            pip install .
+            mv .env-2/lib/python2.7/site-packages/exodus_bundler/cli.py .env-2/lib/python2.7/site-packages/exodus_bundler/exodus.py
+            echo "main()" >> .env-2/lib/python2.7/site-packages/exodus_bundler/exodus.py
+            bbfreeze .env-2/lib/python2.7/site-packages/exodus_bundler/exodus.py
+            cp -r src/exodus_bundler/templates/ dist/
       - store_artifacts:
           path: htmlcov
           destination: coverage-report
