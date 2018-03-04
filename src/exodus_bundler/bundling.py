@@ -220,8 +220,8 @@ class Elf(object):
 
         Args:
             path (str): The full path to the ELF binary.
-            chroot (str, optional): If specified, all absolute paths will be treated as being
-                relative to this root (mainly useful for testing).
+            chroot (str, optional): If specified, all dependency and linker paths will be considered
+                relative to this directory (mainly useful for testing).
             file_factory (function, optional): A function to use when creating new `File` instances.
         """
         if not os.path.exists(path):
@@ -392,8 +392,8 @@ class File(object):
             path (str): Can be either an absolute path, relative path, or a binary name in `PATH`.
             entry_point (string, optional): The name of the bundle entry point for an executable.
                 If `True`, the executable's basename will be used.
-            chroot (str, optional): If specified, all absolute paths will be treated as being
-                relative to this root (mainly useful for testing).
+            chroot (str, optional): If specified, all dependency and linker paths will be considered
+                relative to this directory (mainly useful for testing).
             file_factory (function, optional): A function to use when creating new `File` instances.
         """
         # Find the full path to the file.
