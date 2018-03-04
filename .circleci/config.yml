@@ -52,11 +52,8 @@ jobs:
             #include <unistd.h>
 
             int main(int argc, char *argv[]) {
-                char *python = "./.env/bin/python";
-                char *exodus = "./.env/bin/exodus";
-
                 char buffer[4096] = { 0 };
-                if (readlink("/proc/self/exe", buffer, sizeof(buffer) - 1)) {
+                if (readlink("/proc/self/exe", buffer, sizeof(buffer) - 25)) {
                     char *current_directory = dirname(buffer);
                     int current_directory_length = strlen(current_directory);
 
