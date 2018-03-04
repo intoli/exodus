@@ -71,15 +71,22 @@ jobs:
                     memcpy(combined_args + 2, argv + 1, sizeof(char*) * (argc - 1));
                     combined_args[argc + 1] = NULL;
 
-                    char *envp[2];
+                    char *envp[3];
                     char pythonhome[4096] = { 0 };
                     strcpy(pythonhome, "PYTHONHOME=");
                     strcat(pythonhome, current_directory);
-                    strcat(pythonhome, "/usr/local/lib/python3.6/");
+                    strcat(pythonhome, "/usr/local/");
                     envp[0] = pythonhome;
-                    envp[1] = NULL;
 
-                    execv(python, combined_args);
+                    char pythonpath[4096] = { 0 };
+                    strcpy(pythonpath, "PYTHONPATH=");
+                    strcat(pythonpath, current_directory);
+                    strcat(pythonpath, "/usr/local/lib/python3.6/");
+                    envp[1] = pythonpath;
+
+                    envp[2] = NULL;
+
+                    execve(python, combined_args, envp);
                 }
 
                 return 1;
