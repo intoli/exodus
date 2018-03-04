@@ -4,6 +4,7 @@ blacklisted_directories = [
     '/proc/',
     '/run/',
     '/sys/',
+    '/tmp/exodus-bundle-'
 ]
 
 exec_methods = [
