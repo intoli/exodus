@@ -252,8 +252,8 @@ def test_file_destination():
     arch_directory = os.path.dirname(arch_file.destination)
     fizz_buzz_file = File(fizz_buzz_glibc_32, chroot=chroot)
     fizz_buzz_directory = os.path.dirname(fizz_buzz_file.destination)
-    assert arch_directory != fizz_buzz_directory, \
-        'Executable and non-executable files should not be written to the same directory.'
+    assert arch_directory == fizz_buzz_directory, \
+        'Executable and non-executable files should be written to the same directory.'
 
 
 def test_file_executable():
