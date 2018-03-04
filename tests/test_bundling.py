@@ -232,6 +232,7 @@ def test_elf_direct_dependencies(fizz_buzz):
 def test_elf_linker(fizz_buzz, expected_linker_path):
     # Found by running `readelf -l fizz-buzz`.
     fizz_buzz_elf = Elf(fizz_buzz, chroot=chroot)
+    expected_linker_path = os.path.join(chroot, expected_linker_path)
     assert fizz_buzz_elf.linker_file.path == expected_linker_path, \
         'The correct linker should be extracted from the ELF program header.'
 
