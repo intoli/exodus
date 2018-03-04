@@ -68,6 +68,16 @@ def test_bundle_delete_working_directory():
         'The working directory should have been cleared after deletion.'
 
 
+def test_bundle_file_factory():
+    bundle = Bundle()
+    bundle.add_file(ldd)
+    # Note that `ldd` is a shell script, and should bring in no dependencies.
+    [file] = bundle.files
+    new_file = bundle.file_factory(ldd)
+    assert new_file is file, \
+        'The same file should be returned instead of making a new one.'
+
+
 def test_bundle_hash():
     bundle = Bundle(chroot=chroot)
     hashes = [bundle.hash]
