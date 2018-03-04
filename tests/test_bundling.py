@@ -187,7 +187,7 @@ def test_detect_elf_binary():
     (fizz_buzz_musl_64, 64),
 ])
 def test_elf_bits(fizz_buzz, bits):
-    fizz_buzz_elf = Elf(fizz_buzz)
+    fizz_buzz_elf = Elf(fizz_buzz, chroot=chroot)
     # Can be checked by running `file fizz-buzz`.
     assert fizz_buzz_elf.bits == bits, \
         'The fizz buzz executable should be %d-bit.' % bits
@@ -231,7 +231,7 @@ def test_elf_direct_dependencies(fizz_buzz):
 ])
 def test_elf_linker(fizz_buzz, expected_linker_path):
     # Found by running `readelf -l fizz-buzz`.
-    fizz_buzz_elf = Elf(fizz_buzz)
+    fizz_buzz_elf = Elf(fizz_buzz, chroot=chroot)
     assert fizz_buzz_elf.linker_file.path == expected_linker_path, \
         'The correct linker should be extracted from the ELF program header.'
 
@@ -242,28 +242,28 @@ def test_elf_linker(fizz_buzz, expected_linker_path):
     (fizz_buzz_glibc_64, 'shared'),
 ])
 def test_elf_type(fizz_buzz, expected_type):
-    elf = Elf(fizz_buzz)
+    elf = Elf(fizz_buzz, chroot=chroot)
     assert elf.type == expected_type, 'Fizz buzz should match the expected ELF binary type.'
 
 
 def test_file_destination():
     arch_file = File(os.path.join(ldd_output_directory, 'htop-arch.txt'))
     arch_directory = os.path.dirname(arch_file.destination)
-    fizz_buzz_file = File(fizz_buzz_glibc_32)
+    fizz_buzz_file = File(fizz_buzz_glibc_32, chroot=chroot)
     fizz_buzz_directory = os.path.dirname(fizz_buzz_file.destination)
     assert arch_directory != fizz_buzz_directory, \
         'Executable and non-executable files should not be written to the same directory.'
 
 
 def test_file_executable():
-    fizz_buzz_file = File(fizz_buzz_glibc_32)
+    fizz_buzz_file = File(fizz_buzz_glibc_32, chroot=chroot)
     arch_file = File(os.path.join(ldd_output_directory, 'htop-arch.txt'))
     assert fizz_buzz_file.executable, 'The fizz buzz executable should be executable.'
     assert not arch_file.executable, 'The arch text file should not be executable.'
 
 
 def test_file_elf():
-    fizz_buzz_file = File(fizz_buzz_glibc_32)
+    fizz_buzz_file = File(fizz_buzz_glibc_32, chroot=chroot)
     arch_file = File(os.path.join(ldd_output_directory, 'htop-arch.txt'))
     assert fizz_buzz_file.elf, 'The fizz buzz executable should be an ELF binary.'
     assert not arch_file.elf, 'The arch text file should not be an ELF binary.'
@@ -278,7 +278,7 @@ def test_file_hash():
 
     # Found by executing `sha256sum fizz-buzz`.
     expected_hash = 'd54ab4714215d7822bf490df5cdf49bc3f32b4c85a439b109fc7581355f9d9c5'
-    assert File(fizz_buzz_glibc_32).hash == expected_hash, 'Hashes should match.'
+    assert File(fizz_buzz_glibc_32, chroot=chroot).hash == expected_hash, 'Hashes should match.'
 
 
 @pytest.mark.parametrize('fizz_buzz', [
