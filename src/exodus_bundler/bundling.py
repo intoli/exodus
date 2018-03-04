@@ -162,6 +162,25 @@ def resolve_binary(binary):
     return absolute_binary_path
 
 
+def resolve_file_path(path, search_environment_path=False):
+    """Attempts to find a normalized path to a file.
+
+    If the file is not found, or if it is a directory, appropriate exceptions will be thrown.
+
+    Args:
+        path (str): Either a relative or absolute path to a file, or the name of an
+            executable if `search_environment_path` is `True`.
+        search_environment_path (bool): Whether PATH should be used to resolve the file.
+    """
+    if search_environment_path:
+        path = resolve_binary(path)
+    if not os.path.exists(path):
+        raise MissingFileError('The "%s" file was not found.' % path)
+    if os.path.isdir(path):
+        raise UnexpectedDirectoryError('"%s" is a directory, not a file.' % path)
+    return os.path.normpath(os.path.abspath(path))
+
+
 def run_ldd(ldd, binary):
     """Runs `ldd` and gets the combined stdout/stderr output as a list of lines."""
     if not detect_elf_binary(resolve_binary(binary)):
@@ -373,13 +392,7 @@ class File(object):
             file_factory (function, optional): A function to use when creating new `File` instances.
         """
         # Find the full path to the file.
-        if entry_point:
-            path = resolve_binary(path)
-        if not os.path.exists(path):
-            raise MissingFileError('The "%s" file was not found.' % path)
-        if os.path.isdir(path):
-            raise UnexpectedDirectoryError('"%s" is a directory, not a file.' % path)
-        self.path = os.path.normpath(os.path.abspath(path))
+        self.path = resolve_file_path(path, search_environment_path=(entry_point is not None))
 
         # Set the entry point for the file.
         if entry_point is True:
