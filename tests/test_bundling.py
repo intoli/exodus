@@ -22,6 +22,8 @@ parent_directory = os.path.dirname(os.path.realpath(__file__))
 ldd_output_directory = os.path.join(parent_directory, 'data', 'ldd-output')
 chroot = os.path.join(parent_directory, 'data', 'binaries', 'chroot')
 ldd = os.path.join(chroot, 'bin', 'ldd')
+echo_args_glibc_32 = os.path.join(chroot, 'bin', 'echo-args-glibc-32')
+echo_proc_self_exe_glibc_32 = os.path.join(chroot, 'bin', 'echo-proc-self-exe-glibc-32')
 fizz_buzz_glibc_32 = os.path.join(chroot, 'bin', 'fizz-buzz-glibc-32')
 fizz_buzz_glibc_32_exe = os.path.join(chroot, 'bin', 'fizz-buzz-glibc-32-exe')
 fizz_buzz_glibc_64 = os.path.join(chroot, 'bin', 'fizz-buzz-glibc-64')
@@ -134,6 +136,46 @@ def test_create_unpackaged_bundle(fizz_buzz):
         shutil.rmtree(root_directory)
 
 
+def test_create_unpackaged_bundle_has_correct_args():
+    root_directory = create_unpackaged_bundle(
+        rename=[], executables=[echo_args_glibc_32], chroot=chroot)
+    try:
+        binary_path = os.path.join(root_directory, 'bin', os.path.basename(echo_args_glibc_32))
+
+        process = Popen([binary_path, 'arg1', 'arg2'], stdout=PIPE, stderr=PIPE)
+        stdout, stderr = process.communicate()
+        assert len(stderr.decode('utf-8')) == 0
+        args = stdout.decode('utf-8').split('\n')
+        assert os.path.basename(args[0]) == '%s-x' % os.path.basename(echo_args_glibc_32), \
+            'The value of argv[0] should correspond to the local symlink.'
+        assert args[1] == 'arg1' and args[2] == 'arg2', \
+            'The other arguments should be passed through to the child process.'
+    finally:
+        assert root_directory.startswith('/tmp/')
+        shutil.rmtree(root_directory)
+
+
+def test_create_unpackaged_bundle_has_correct_proc_self_exe():
+    root_directory = create_unpackaged_bundle(
+        rename=[], executables=[echo_proc_self_exe_glibc_32], chroot=chroot)
+    try:
+        binary_path = os.path.join(root_directory, 'bin',
+                                   os.path.basename(echo_proc_self_exe_glibc_32))
+
+        process = Popen([binary_path], stdout=PIPE, stderr=PIPE)
+        stdout, stderr = process.communicate()
+        assert len(stderr.decode('utf-8')) == 0
+        proc_self_exe = stdout.decode('utf-8').strip()
+        assert os.path.basename(proc_self_exe).startswith('linker-'), \
+            'The linker should be the executing process.'
+        relative_path = os.path.relpath(proc_self_exe, root_directory)
+        assert relative_path.startswith('bundles/'), \
+            'The process should be in the bundles directory.'
+    finally:
+        assert root_directory.startswith('/tmp/')
+        shutil.rmtree(root_directory)
+
+
 def test_detect_elf_binary():
     assert detect_elf_binary(fizz_buzz_glibc_32), 'The `fizz-buzz` file should be an ELF binary.'
     assert not detect_elf_binary(ldd), 'The `ldd` file should be a shell script.'
@@ -145,7 +187,7 @@ def test_detect_elf_binary():
     (fizz_buzz_musl_64, 64),
 ])
 def test_elf_bits(fizz_buzz, bits):
-    fizz_buzz_elf = Elf(fizz_buzz)
+    fizz_buzz_elf = Elf(fizz_buzz, chroot=chroot)
     # Can be checked by running `file fizz-buzz`.
     assert fizz_buzz_elf.bits == bits, \
         'The fizz buzz executable should be %d-bit.' % bits
@@ -182,15 +224,16 @@ def test_elf_direct_dependencies(fizz_buzz):
             '"libc" was not found as a direct dependency of the executable.'
 
 
-@pytest.mark.parametrize('fizz_buzz,expected_linker', [
+@pytest.mark.parametrize('fizz_buzz,expected_linker_path', [
     (fizz_buzz_glibc_32, '/lib/ld-linux.so.2'),
     (fizz_buzz_glibc_64, '/lib64/ld-linux-x86-64.so.2'),
     (fizz_buzz_musl_64, '/lib/ld-musl-x86_64.so.1'),
 ])
-def test_elf_linker(fizz_buzz, expected_linker):
+def test_elf_linker(fizz_buzz, expected_linker_path):
     # Found by running `readelf -l fizz-buzz`.
-    fizz_buzz_elf = Elf(fizz_buzz)
-    assert fizz_buzz_elf.linker == expected_linker, \
+    fizz_buzz_elf = Elf(fizz_buzz, chroot=chroot)
+    expected_linker_path = os.path.join(chroot, os.path.relpath(expected_linker_path, '/'))
+    assert fizz_buzz_elf.linker_file.path == expected_linker_path, \
         'The correct linker should be extracted from the ELF program header.'
 
 
@@ -200,28 +243,28 @@ def test_elf_linker(fizz_buzz, expected_linker):
     (fizz_buzz_glibc_64, 'shared'),
 ])
 def test_elf_type(fizz_buzz, expected_type):
-    elf = Elf(fizz_buzz)
+    elf = Elf(fizz_buzz, chroot=chroot)
     assert elf.type == expected_type, 'Fizz buzz should match the expected ELF binary type.'
 
 
 def test_file_destination():
     arch_file = File(os.path.join(ldd_output_directory, 'htop-arch.txt'))
     arch_directory = os.path.dirname(arch_file.destination)
-    fizz_buzz_file = File(fizz_buzz_glibc_32)
+    fizz_buzz_file = File(fizz_buzz_glibc_32, chroot=chroot)
     fizz_buzz_directory = os.path.dirname(fizz_buzz_file.destination)
     assert arch_directory != fizz_buzz_directory, \
         'Executable and non-executable files should not be written to the same directory.'
 
 
 def test_file_executable():
-    fizz_buzz_file = File(fizz_buzz_glibc_32)
+    fizz_buzz_file = File(fizz_buzz_glibc_32, chroot=chroot)
     arch_file = File(os.path.join(ldd_output_directory, 'htop-arch.txt'))
     assert fizz_buzz_file.executable, 'The fizz buzz executable should be executable.'
     assert not arch_file.executable, 'The arch text file should not be executable.'
 
 
 def test_file_elf():
-    fizz_buzz_file = File(fizz_buzz_glibc_32)
+    fizz_buzz_file = File(fizz_buzz_glibc_32, chroot=chroot)
     arch_file = File(os.path.join(ldd_output_directory, 'htop-arch.txt'))
     assert fizz_buzz_file.elf, 'The fizz buzz executable should be an ELF binary.'
     assert not arch_file.elf, 'The arch text file should not be an ELF binary.'
@@ -236,7 +279,7 @@ def test_file_hash():
 
     # Found by executing `sha256sum fizz-buzz`.
     expected_hash = 'd54ab4714215d7822bf490df5cdf49bc3f32b4c85a439b109fc7581355f9d9c5'
-    assert File(fizz_buzz_glibc_32).hash == expected_hash, 'Hashes should match.'
+    assert File(fizz_buzz_glibc_32, chroot=chroot).hash == expected_hash, 'Hashes should match.'
 
 
 @pytest.mark.parametrize('fizz_buzz', [
