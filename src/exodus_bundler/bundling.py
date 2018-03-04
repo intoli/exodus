@@ -447,31 +447,42 @@ class File(object):
 
         return full_destination
 
-    def create_launcher(self, working_directory, bundle_root):
+    def create_launcher(self, working_directory, bundle_root, linker_basename, symlink_basename):
         """Creates a launcher at `source` for `destination`.
 
         Note:
             If an `entry_point` has been specified, it will also be created.
         Args:
-            working_directory (str): The root that `destination` will be joined with.
+            working_directory (str): The root that the `destination` will be joined with.
             bundle_root (str): The root that `source` will be joined with.
+            linker_basename (str): The basename of the linker to place in the same directory.
+            symlink_basename (str): The basename of the symlink to the actual executable.
         Returns:
             str: The normalized and absolute path to the launcher.
         """
         destination_path = os.path.join(working_directory, self.destination)
         source_path = os.path.join(bundle_root, self.source)
 
+        # Create the symlink.
         source_parent = os.path.dirname(source_path)
         if not os.path.exists(source_parent):
             os.makedirs(source_parent)
         relative_destination_path = os.path.relpath(destination_path, source_parent)
-        executable = relative_destination_path
+        symlink_path = os.path.join(source_parent, symlink_basename)
+        os.symlink(relative_destination_path, symlink_path)
+        executable = os.path.join('.', symlink_basename)
 
+        # Copy over the linker.
+        linker_path = os.path.join(source_parent, linker_basename)
+        if not os.path.exists(linker_path):
+            shutil.copy(self.elf.linker_file.path, linker_path)
+        else:
+            assert filecmp.cmp(self.elf.linker_file.path, linker_path), \
+                'The "%s" linker file already exists and has differing contents.' % linker_path
+        linker = os.path.join('.', linker_basename)
+
+        # Construct the library path
         original_file_parent = os.path.dirname(self.path)
-        linker_file = self.elf.linker_file
-        relative_linker_path = os.path.relpath(linker_file.path, original_file_parent)
-        linker = relative_linker_path
-
         ld_library_path = '/lib64:/usr/lib64:/lib/:/usr/lib:/lib32/:/usr/lib32/:'
         ld_library_path += os.environ.get('LD_LIBRARY_PATH', '')
         relative_library_paths = []
