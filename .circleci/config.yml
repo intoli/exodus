@@ -72,7 +72,7 @@ jobs:
                     combined_args[argc + 1] = NULL;
 
                     char *envp[2];
-                    char pythonhome[4096] = { 0 }
+                    char pythonhome[4096] = { 0 };
                     strcpy(pythonhome, "PYTHONHOME=");
                     strcat(pythonhome, current_directory);
                     strcat(pythonhome, "/usr/local/lib/python3.6/");
