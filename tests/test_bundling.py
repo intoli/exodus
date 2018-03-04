@@ -26,6 +26,7 @@ fizz_buzz_glibc_32 = os.path.join(chroot, 'bin', 'fizz-buzz-glibc-32')
 fizz_buzz_glibc_32_exe = os.path.join(chroot, 'bin', 'fizz-buzz-glibc-32-exe')
 fizz_buzz_glibc_64 = os.path.join(chroot, 'bin', 'fizz-buzz-glibc-64')
 fizz_buzz_musl_64 = os.path.join(chroot, 'bin', 'fizz-buzz-musl-64')
+echo_proc_self_exe_glibc_32 = os.path.join(chroot, 'bin', 'echo-proc-self-exe-glibc-32')
 
 
 @pytest.mark.parametrize('path,expected_file_count', [
@@ -129,6 +130,27 @@ def test_create_unpackaged_bundle(fizz_buzz):
         stdout, stderr = process.communicate()
         assert 'FIZZBUZZ' in stdout.decode('utf-8')
         assert len(stderr.decode('utf-8')) == 0
+    finally:
+        assert root_directory.startswith('/tmp/')
+        shutil.rmtree(root_directory)
+
+
+def test_create_unpackaged_bundle_has_correct_proc_self_exe():
+    root_directory = create_unpackaged_bundle(
+        rename=[], executables=[echo_proc_self_exe_glibc_32], chroot=chroot)
+    try:
+        binary_path = os.path.join(root_directory, 'bin',
+                                   os.path.basename(echo_proc_self_exe_glibc_32))
+
+        process = Popen([binary_path], stdout=PIPE, stderr=PIPE)
+        stdout, stderr = process.communicate()
+        assert len(stderr.decode('utf-8')) == 0
+        proc_self_exe = stdout.decode('utf-8').strip()
+        assert os.path.basename(proc_self_exe).startswith('linker-'), \
+            'The linker should be the executing process.'
+        relative_path = os.path.relpath(proc_self_exe, root_directory)
+        assert relative_path.startswith('bundles/'), \
+            'The process should be in the bundles directory.'
     finally:
         assert root_directory.startswith('/tmp/')
         shutil.rmtree(root_directory)
