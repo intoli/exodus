@@ -1,3 +1,11 @@
+# We don't actually want to include anything in these directories in bundles.
+blacklisted_directories = [
+    '/dev/',
+    '/proc/',
+    '/run/',
+    '/sys/',
+]
+
 exec_methods = [
     'execve',
     'exec',
@@ -62,6 +70,8 @@ def extract_paths(content):
     for line in lines:
         path = extract_exec_path(line) or extract_open_path(line)
         if path:
-            paths.append(path)
+            blacklisted = any(path.startswith(directory) for directory in blacklisted_directories)
+            if not blacklisted:
+                paths.append(path)
 
     return paths
