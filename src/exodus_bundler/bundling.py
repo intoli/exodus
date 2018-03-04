@@ -675,7 +675,19 @@ class Bundle(object):
 
         See the `File.__init__()` method for documentation of the arguments, they're identical.
         """
-        # TODO: The actual deduplication.
+        # Attempt to find an existing file with the same normalize path in `self.files`.
+        path = resolve_file_path(path, search_environment_path=entry_point is not None)
+        file = next((file for file in self.files if file.path == path), None)
+        if file is not None:
+            assert entry_point == file.entry_point or not entry_point or not file.entry_point, \
+                'The entry point property should always persist, but can\'t conflict.'
+            file.entry_point = file.entry_point or entry_point
+            assert chroot == file.chroot, 'The chroot must match.'
+            file.library = file.library or library
+            assert not file.entry_point or not file.library, \
+                'A file can\'t be both an entry point and a library.'
+            return file
+
         return File(path, entry_point, chroot, library, file_factory)
 
     @property
