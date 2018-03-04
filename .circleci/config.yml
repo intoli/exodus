@@ -43,8 +43,8 @@ jobs:
       - run:
           name: Build Self-Hosted Bundle
           command: |
-            . .env/bin/activate
-            pip install .
+            sudo pip install .
+            cd /
             (cat <<EOF > ./exodus.c
             #include <libgen.h>
             #include <stdlib.h>
@@ -59,11 +59,11 @@ jobs:
 
                     char python[4096] = { 0 };
                     strcpy(python, current_directory);
-                    strcat(python, "/.env/bin/python");
+                    strcat(python, "/usr/local/bin/python");
 
                     char exodus[4096] = { 0 };
                     strcpy(exodus, current_directory);
-                    strcat(exodus, "/.env/bin/exodus");
+                    strcat(exodus, "/usr/local/bin/exodus");
 
                     char **combined_args = malloc(sizeof(char*) * (argc + 2));
                     combined_args[0] = python;
@@ -75,7 +75,7 @@ jobs:
                     char pythonhome[4096] = { 0 };
                     strcpy(pythonhome, "PYTHONHOME=");
                     strcat(pythonhome, current_directory);
-                    strcat(pythonhome, "/.env/lib/python3.6/");
+                    strcat(pythonhome, "/usr/local/lib/python3.6/");
                     envp[0] = pythonhome;
                     envp[1] = NULL;
 
