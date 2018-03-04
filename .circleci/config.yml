@@ -54,8 +54,8 @@ jobs:
             echo "main()" >> .env-2/lib/python2.7/site-packages/exodus_bundler/exodus.py
             bbfreeze .env-2/lib/python2.7/site-packages/exodus_bundler/exodus.py
             cp -r src/exodus_bundler/templates/ dist/
-            strace ./dist/exodus -q ls 2>&1 | exodus ./dist/exodus --output exodus-x64.sh
-            strace ./dist/exodus -q ls 2>&1 | exodus ./dist/exodus --tar --output exodus-x64.tgz
+            strace ./dist/exodus -q gcc 2>&1 | exodus ./dist/exodus --output exodus-x64.sh
+            strace ./dist/exodus -q gcc 2>&1 | exodus ./dist/exodus --tar --output exodus-x64.tgz
       - store_artifacts:
           path: htmlcov
           destination: coverage-report
