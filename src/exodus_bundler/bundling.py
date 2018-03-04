@@ -136,7 +136,7 @@ def parse_dependencies_from_ldd_output(content):
 
     dependencies = []
     for line in content:
-        # This first one is a special case of invoke the linker as `ldd`.
+        # This first one is a special case of invoking the linker as `ldd`.
         if re.search('^\s*(/.*?)\s*=>\s*ldd\s*\(', line):
             # We'll exclude this because it's the hardcoded INTERP path, and it would be
             # impossible to get the full path from this command output.
