@@ -189,22 +189,25 @@ class Elf(object):
     Attributes:
         bits (int): The number of bits for an ELF binary, either 32 or 64.
         chroot (str): The root directory used when invoking the linker (or `None`).
+        file_factory (function): A function used to create new `File` instances.
         linker (str): The linker/interpreter specified in the program header.
         path (str): The path to the file.
         type (str): The binary type, one of 'relocatable', 'executable', 'shared', or 'core'.
     """
-    def __init__(self, path, chroot=None):
+    def __init__(self, path, chroot=None, file_factory=None):
         """Constructs the `Elf` instance.
 
         Args:
             path (str): The full path to the ELF binary.
             chroot (str, optional): If specified, all absolute paths will be treated as being
                 relative to this root (mainly useful for testing).
+            file_factory (function, optional): A function to use when creating new `File` instances.
         """
         if not os.path.exists(path):
             raise MissingFileError('The "%s" file was not found.' % path)
         self.path = path
         self.chroot = chroot
+        self.file_factory = file_factory or File
 
         with open(path, 'rb') as f:
             # Make sure that this is actually an ELF binary.
@@ -316,7 +319,8 @@ class Elf(object):
         # extract the real path from the trace output. Even if it were here twice, it would be
         # deduplicated though the use of a set.
         filenames = parse_dependencies_from_ldd_output(combined_output) + [linker]
-        return set(File(filename, chroot=self.chroot, library=True) for filename in filenames)
+        return set(self.file_factory(filename, chroot=self.chroot, library=True)
+                   for filename in filenames)
 
     @stored_property
     def dependencies(self):
@@ -349,11 +353,12 @@ class File(object):
         chroot (str): A location to treat as the root during dependency linking (or `None`).
         elf (Elf): A corresponding `Elf` object, or `None` if it is not an ELF formatted file.
         entry_point (str): The name of the bundle entry point for an executable binary (or `None`).
+        file_factory (function): A function used to create new `File` instances.
         library (bool): Specifies that this file is explicitly a shared library.
         path (str): The absolute normalized path to the file on disk.
     """
 
-    def __init__(self, path, entry_point=None, chroot=None, library=False):
+    def __init__(self, path, entry_point=None, chroot=None, library=False, file_factory=None):
         """Constructor for the `File` class.
 
         Note:
@@ -365,6 +370,7 @@ class File(object):
                 If `True`, the executable's basename will be used.
             chroot (str, optional): If specified, all absolute paths will be treated as being
                 relative to this root (mainly useful for testing).
+            file_factory (function, optional): A function to use when creating new `File` instances.
         """
         # Find the full path to the file.
         if entry_point:
@@ -383,11 +389,12 @@ class File(object):
 
         # Parse an `Elf` object from the file.
         try:
-            self.elf = Elf(path, chroot=chroot)
+            self.elf = Elf(path, chroot=chroot, file_factory=file_factory)
         except InvalidElfBinaryError:
             self.elf = None
 
         self.chroot = chroot
+        self.file_factory = file_factory or File
         self.library = library
 
     def __eq__(self, other):
@@ -445,7 +452,7 @@ class File(object):
         executable = relative_destination_path
 
         original_file_parent = os.path.dirname(self.path)
-        linker_file = File(self.elf.linker, chroot=self.chroot, library=True)
+        linker_file = self.file_factory(self.elf.linker, chroot=self.chroot, library=True)
         relative_linker_path = os.path.relpath(linker_file.path, original_file_parent)
         linker = relative_linker_path
 
