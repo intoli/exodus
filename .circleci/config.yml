@@ -22,7 +22,11 @@ jobs:
             python3 -m venv .env
             . .env/bin/activate
             pip install -r development-requirements.txt
-
+            deactivate
+            pip install virtualenv
+            virtualenv -p /usr/bin/python2 .env-2
+            . .env-2/bin/activate
+            pip install bbfreeze
       - save_cache:
           paths:
             - ./.env
@@ -40,6 +44,10 @@ jobs:
           command: |
             python setup.py sdist bdist_wheel
 
+      - run:
+          name: Build Self-Hosted Bundle
+            . .env-2/bin/activate
+            python setup.py bdist_bbfreeze
       - store_artifacts:
           path: htmlcov
           destination: coverage-report
