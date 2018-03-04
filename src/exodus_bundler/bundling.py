@@ -588,11 +588,6 @@ class File(object):
         # This is unfortunately a heuristic approach because many executables are compiled
         # as shared libraries, and many mostly-libraries are executable (*e.g.* glibc).
 
-        # This is a bbfreeze related hack.
-        # TODO: There should be a command-line argument to override the heuristics.
-        if self.path == '/home/circleci/exodus/dist/library.zip':
-            return False
-
         # The easy ones.
         if self.library or not self.elf or not self.elf.linker_file or not self.executable:
             return False
