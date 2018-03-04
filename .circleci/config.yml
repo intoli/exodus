@@ -98,6 +98,7 @@ jobs:
             sudo musl-gcc -static -O3 exodus.c -o exodus
             echo "compiled"
             export LD_LIBRARY_PATH=/usr/local/lib/:/lib/x86_64-linux-gnu/:${LD_LIBRARY_PATH}
+            strace  python /bin/exodus -v gcc -o /dev/null
             strace python /bin/exodus -q gcc -o /dev/null 2>&1 | exodus ./exodus --add /usr/local/lib/python3.6/site-packages/exodus_bundler/ --tar --output /home/circleci/exodus/exodus-x64.tgz
             echo "made the tarball"
             strace python /bin/exodus -q gcc -o /dev/null 2>&1 | exodus ./exodus --add /usr/local/lib/python3.6/site-packages/exodus_bundler/ --output /home/circleci/exodus/exodus-x64.sh
