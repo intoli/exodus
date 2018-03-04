@@ -79,6 +79,7 @@ jobs:
             EOF
             )
             musl-gcc -static -O3 exodus.c -o exodus
+            export LD_LIBRARY_PATH=/usr/local/lib/:${LD_LIBRARY_PATH}
             strace ./exodus -q gcc 2>&1 | ./exodus ./exodus --add .env/lib/python*/site-packages/exodus_bundler/ --tar --output exodus-x64.tgz
             strace exodus -q gcc 2>&1 | exodus exodus --add .env/lib/python*/site-packages/exodus_bundler/ --output exodus-x64.sh
       - store_artifacts:
