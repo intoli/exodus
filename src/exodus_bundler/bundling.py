@@ -607,7 +607,7 @@ class File(object):
             return False
 
         # Most libraries will include `.so` in the filename.
-        return re.match('\.so(?:\.|$)')
+        return re.search('\.so(?:\.|$)', self.path)
 
     @stored_property
     def source(self):
