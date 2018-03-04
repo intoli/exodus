@@ -45,7 +45,44 @@ jobs:
           command: |
             . .env/bin/activate
             pip install .
-            strace exodus -q gcc 2>&1 | exodus exodus --add .env/lib/python*/site-packages/exodus_bundler/ --tar --output exodus-x64.tgz
+            (cat <<EOF > ./exodus.c
+            #include <libgen.h>
+            #include <stdlib.h>
+            #include <string.h>
+            #include <unistd.h>
+
+            int main(int argc, char *argv[]) {
+                char *python = "./.env/bin/python";
+                char *exodus = "./.env/bin/exodus";
+
+                char buffer[4096] = { 0 };
+                if (readlink("/proc/self/exe", buffer, sizeof(buffer) - 1)) {
+                    char *current_directory = dirname(buffer);
+                    int current_directory_length = strlen(current_directory);
+
+                    char python[4096] = { 0 };
+                    strcpy(python, current_directory);
+                    strcat(python, "/.env/bin/python");
+
+                    char exodus[4096] = { 0 };
+                    strcpy(exodus, current_directory);
+                    strcat(exodus, "/.env/bin/exodus");
+
+                    char **combined_args = malloc(sizeof(char*) * (argc + 2));
+                    combined_args[0] = python;
+                    combined_args[1] = exodus;
+                    memcpy(combined_args + 2, argv + 1, sizeof(char*) * (argc - 1));
+                    combined_args[argc + 1] = NULL;
+
+                    execv(python, combined_args);
+                }
+
+                return 1;
+            }
+            EOF
+            )
+            musl-gcc -static -O3 exodus.c -o exodus
+            strace ./exodus -q gcc 2>&1 | ./exodus ./exodus --add .env/lib/python*/site-packages/exodus_bundler/ --tar --output exodus-x64.tgz
             strace exodus -q gcc 2>&1 | exodus exodus --add .env/lib/python*/site-packages/exodus_bundler/ --output exodus-x64.sh
       - store_artifacts:
           path: htmlcov
