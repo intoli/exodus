@@ -619,7 +619,7 @@ class Bundle(object):
                 If `True`, the executable's basename will be used.
         """
         try:
-            file = File(path, entry_point=entry_point, chroot=self.chroot)
+            file = self.file_factory(path, entry_point=entry_point, chroot=self.chroot)
         except UnexpectedDirectoryError:
             assert entry_point is None, 'Directories can\'t have entry points.'
             for root, directories, files in os.walk(path):
@@ -648,6 +648,22 @@ class Bundle(object):
         """Recursively deletes the working directory."""
         shutil.rmtree(self.working_directory)
         self.working_directory = None
+
+    def file_factory(self, path, entry_point=None, chroot=None, library=False, file_factory=None):
+        """Either creates a new `File`, or updates and returns one from `files`.
+
+        This method can be used in place of `File.__init__()` when it is known that the `File`
+        is going to end up being added to the `Bundle.files` set. The construction of a `File` is
+        quite expensive due to the ELF parsing, so this allows avoiding the construction of `File`
+        objects when an equivalent ones are already present in the set. Additionally, this allows
+        for intelligent merging of properties between `File` objects. For example, a `File` with
+        an entry point should always preserve that entry point, even if the file also gets added
+        using `--add` or some other method without one.
+
+        See the `File.__init__()` method for documentation of the arguments, they're identical.
+        """
+        # TODO: The actual deduplication.
+        return File(path, entry_point, chroot, library, file_factory)
 
     @property
     def bundle_root(self):
