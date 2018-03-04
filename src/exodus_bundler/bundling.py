@@ -541,8 +541,7 @@ class File(object):
     @stored_property
     def destination(self):
         """str: The relative path for the destination of the actual file contents."""
-        data_directory = 'data+x' if self.executable else 'data-x'
-        return os.path.join('.', data_directory, self.hash)
+        return os.path.join('.', 'data', self.hash)
 
     @stored_property
     def executable(self):
