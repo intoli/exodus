@@ -45,7 +45,7 @@ jobs:
           command: |
             sudo pip install .
             cd /
-            (cat <<EOF > ./exodus.c
+            (sudo cat <<EOF > ./exodus.c
             #include <libgen.h>
             #include <stdlib.h>
             #include <string.h>
