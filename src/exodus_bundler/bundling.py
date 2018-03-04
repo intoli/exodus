@@ -1,4 +1,5 @@
 import base64
+import filecmp
 import hashlib
 import io
 import logging
@@ -10,6 +11,7 @@ import struct
 import sys
 import tarfile
 import tempfile
+from collections import defaultdict
 from subprocess import PIPE
 from subprocess import Popen
 
@@ -136,7 +138,7 @@ def parse_dependencies_from_ldd_output(content):
 
     dependencies = []
     for line in content:
-        # This first one is a special case of invoke the linker as `ldd`.
+        # This first one is a special case of invoking the linker as `ldd`.
         if re.search('^\s*(/.*?)\s*=>\s*ldd\s*\(', line):
             # We'll exclude this because it's the hardcoded INTERP path, and it would be
             # impossible to get the full path from this command output.
@@ -209,7 +211,7 @@ class Elf(object):
         bits (int): The number of bits for an ELF binary, either 32 or 64.
         chroot (str): The root directory used when invoking the linker (or `None`).
         file_factory (function): A function used to create new `File` instances.
-        linker (str): The linker/interpreter specified in the program header.
+        linker_file (File): The linker/interpreter specified in the program header.
         path (str): The path to the file.
         type (str): The binary type, one of 'relocatable', 'executable', 'shared', or 'core'.
     """
@@ -218,8 +220,8 @@ class Elf(object):
 
         Args:
             path (str): The full path to the ELF binary.
-            chroot (str, optional): If specified, all absolute paths will be treated as being
-                relative to this root (mainly useful for testing).
+            chroot (str, optional): If specified, all dependency and linker paths will be considered
+                relative to this directory (mainly useful for testing).
             file_factory (function, optional): A function to use when creating new `File` instances.
         """
         if not os.path.exists(path):
@@ -268,7 +270,7 @@ class Elf(object):
             e_phnum = hex(f.read(2))
 
             # Loop through each program header.
-            self.linker = None
+            self.linker_file = None
             for header_index in range(e_phnum):
                 header_start = e_phoff + header_index * e_phentsize
                 f.seek(header_start)
@@ -296,10 +298,11 @@ class Elf(object):
                 segment = f.read(p_filesz)
                 # It should be null-terminated (b'\x00' in Python 2, 0 in Python 3).
                 assert segment[-1] in [b'\x00', 0], 'The string should be null terminated.'
-                assert self.linker is None, 'More than one linker found.'
-                self.linker = segment[:-1].decode('ascii')
+                assert self.linker_file is None, 'More than one linker found.'
+                linker_path = segment[:-1].decode('ascii')
                 if chroot:
-                    self.linker = os.path.join(chroot, os.path.relpath(self.linker, '/'))
+                    linker_path = os.path.join(chroot, os.path.relpath(linker_path, '/'))
+                self.linker_file = self.file_factory(linker_path, chroot=self.chroot)
 
     def __eq__(self, other):
         return isinstance(other, Elf) and self.path == self.path
@@ -311,11 +314,12 @@ class Elf(object):
     def __repr__(self):
         return '<Elf(path="%s")>' % self.path
 
-    def find_direct_dependencies(self, linker=None):
+    def find_direct_dependencies(self, linker_file=None):
         """Runs the specified linker and returns a set of the dependencies as `File` instances."""
-        linker = linker or self.linker
-        if not linker:
+        linker_file = linker_file or self.linker_file
+        if not linker_file:
             return set()
+        linker_path = linker_file.path
         environment = {}
         environment.update(os.environ)
         environment['LD_TRACE_LOADED_OBJECTS'] = '1'
@@ -331,13 +335,13 @@ class Elf(object):
             environment['LD_LIBRARY_PATH'] = ld_library_path
 
         process = Popen(['ldd', '--inhibit-cache', '--inhibit-rpath', '', self.path],
-                        executable=linker, stdout=PIPE, stderr=PIPE, env=environment)
+                        executable=linker_path, stdout=PIPE, stderr=PIPE, env=environment)
         stdout, stderr = process.communicate()
         combined_output = stdout.decode('utf-8').split('\n') + stderr.decode('utf-8').split('\n')
         # Note that we're explicitly adding the linker because when we invoke it as `ldd` we can't
         # extract the real path from the trace output. Even if it were here twice, it would be
         # deduplicated though the use of a set.
-        filenames = parse_dependencies_from_ldd_output(combined_output) + [linker]
+        filenames = parse_dependencies_from_ldd_output(combined_output) + [linker_path]
         return set(self.file_factory(filename, chroot=self.chroot, library=True)
                    for filename in filenames)
 
@@ -351,7 +355,8 @@ class Elf(object):
             new_dependencies = set()
             for dependency in unprocessed_dependencies:
                 if dependency.elf:
-                    new_dependencies |= set(dependency.elf.find_direct_dependencies(self.linker))
+                    new_dependencies |= set(
+                        dependency.elf.find_direct_dependencies(self.linker_file))
             unprocessed_dependencies = new_dependencies - all_dependencies
         return all_dependencies
 
@@ -387,8 +392,8 @@ class File(object):
             path (str): Can be either an absolute path, relative path, or a binary name in `PATH`.
             entry_point (string, optional): The name of the bundle entry point for an executable.
                 If `True`, the executable's basename will be used.
-            chroot (str, optional): If specified, all absolute paths will be treated as being
-                relative to this root (mainly useful for testing).
+            chroot (str, optional): If specified, all dependency and linker paths will be considered
+                relative to this directory (mainly useful for testing).
             file_factory (function, optional): A function to use when creating new `File` instances.
         """
         # Find the full path to the file.
@@ -444,31 +449,59 @@ class File(object):
 
         return full_destination
 
-    def create_launcher(self, working_directory, bundle_root):
+    def create_entry_point(self, working_directory, bundle_root):
+        """Creates a symlink in `bin/` to the executable or its launcher.
+
+        Note:
+            The destination must already exist.
+        Args:
+            working_directory (str): The root that the `destination` will be joined with.
+            bundle_root (str): The root that `source` will be joined with.
+        """
+        source_path = os.path.join(bundle_root, self.source)
+        bin_directory = os.path.join(working_directory, 'bin')
+        if not os.path.exists(bin_directory):
+            os.makedirs(bin_directory)
+        entry_point_path = os.path.join(bin_directory, self.entry_point)
+        relative_destination_path = os.path.relpath(source_path, bin_directory)
+        os.symlink(relative_destination_path, entry_point_path)
+
+    def create_launcher(self, working_directory, bundle_root, linker_basename, symlink_basename):
         """Creates a launcher at `source` for `destination`.
 
         Note:
             If an `entry_point` has been specified, it will also be created.
         Args:
-            working_directory (str): The root that `destination` will be joined with.
+            working_directory (str): The root that the `destination` will be joined with.
             bundle_root (str): The root that `source` will be joined with.
+            linker_basename (str): The basename of the linker to place in the same directory.
+            symlink_basename (str): The basename of the symlink to the actual executable.
         Returns:
             str: The normalized and absolute path to the launcher.
         """
         destination_path = os.path.join(working_directory, self.destination)
         source_path = os.path.join(bundle_root, self.source)
 
+        # Create the symlink.
         source_parent = os.path.dirname(source_path)
         if not os.path.exists(source_parent):
             os.makedirs(source_parent)
         relative_destination_path = os.path.relpath(destination_path, source_parent)
-        executable = relative_destination_path
+        symlink_path = os.path.join(source_parent, symlink_basename)
+        os.symlink(relative_destination_path, symlink_path)
+        executable = os.path.join('.', symlink_basename)
 
+        # Copy over the linker.
+        linker_path = os.path.join(source_parent, linker_basename)
+        if not os.path.exists(linker_path):
+            shutil.copy(self.elf.linker_file.path, linker_path)
+        else:
+            assert filecmp.cmp(self.elf.linker_file.path, linker_path), \
+                'The "%s" linker file already exists and has differing contents.' % linker_path
+        linker = os.path.join('.', linker_basename)
+
+        # Construct the library path
         original_file_parent = os.path.dirname(self.path)
-        linker_file = self.file_factory(self.elf.linker, chroot=self.chroot, library=True)
-        relative_linker_path = os.path.relpath(linker_file.path, original_file_parent)
-        linker = relative_linker_path
-
         ld_library_path = '/lib64:/usr/lib64:/lib/:/usr/lib:/lib32/:/usr/lib32/:'
         ld_library_path += os.environ.get('LD_LIBRARY_PATH', '')
         relative_library_paths = []
@@ -502,15 +535,6 @@ class File(object):
             with open(source_path, 'w') as f:
                 f.write(launcher_content)
         shutil.copymode(self.path, source_path)
-
-        # Create a symlink in `./bin/` if an entry point is specified.
-        if self.entry_point:
-            bin_directory = os.path.join(working_directory, 'bin')
-            if not os.path.exists(bin_directory):
-                os.makedirs(bin_directory)
-            entry_point_path = os.path.join(bin_directory, self.entry_point)
-            relative_destination_path = os.path.relpath(source_path, bin_directory)
-            os.symlink(relative_destination_path, entry_point_path)
 
         return os.path.normpath(os.path.abspath(source_path))
 
@@ -566,7 +590,7 @@ class File(object):
         # as shared libraries, and many mostly-libraries are executable (*e.g.* glibc).
 
         # The easy ones.
-        if self.library or not self.elf or not self.elf.linker or not self.executable:
+        if self.library or not self.elf or not self.elf.linker_file or not self.executable:
             return False
         if self.elf.type == 'executable':
             return True
@@ -647,15 +671,64 @@ class Bundle(object):
 
     def create_bundle(self):
         """Creates the unpackaged bundle in `working_directory`."""
+        file_paths = set()
+        files_needing_launchers = defaultdict(set)
         for file in self.files:
+            # Store the file path to avoid collisions later.
+            file_path = os.path.join(self.bundle_root, file.source)
+            file_paths.add(file_path)
+
+            # Create a symlink in `./bin/` if an entry point is specified.
+            if file.entry_point:
+                file.create_entry_point(self.working_directory, self.bundle_root)
+                if not file.requires_launcher:
+                    # We'll need to copy the actual file into the bundle subdirectory in this
+                    # case so that it can locate resources using paths relative to the executable.
+                    shutil.copy(file.path, file_path)
+                    continue
+
             # Copy over the actual file.
             file.copy(self.working_directory)
 
             if file.requires_launcher:
-                file.create_launcher(working_directory=self.working_directory,
-                                     bundle_root=self.bundle_root)
+                # These are kind of complicated, we'll just store the requirements for now.
+                directory_and_linker = (os.path.dirname(file_path), file.elf.linker_file)
+                files_needing_launchers[directory_and_linker].add(file)
             else:
                 file.symlink(working_directory=self.working_directory, bundle_root=self.bundle_root)
+
+        # Now we need to write out one unique copy of each linker in each directory where it's
+        # required. This is necessary so that `readlink("/proc/self/exe")` will return the correct
+        # directory when programs use that to construct relative paths to resources.
+        for ((directory, linker), executable_files) in files_needing_launchers.items():
+            # First, we'll find a unique name for the linker in this directory and write it out.
+            desired_linker_path = os.path.join(directory, 'linker-%s' % linker.hash)
+            linker_path = desired_linker_path
+            iteration = 2
+            while linker_path in file_paths:
+                linker_path = '%s-%d' % (desired_linker_path, iteration)
+                iteration += 1
+            file_paths.add(linker_path)
+            linker_dirname, linker_basename = os.path.split(linker_path)
+            if not os.path.exists(linker_dirname):
+                os.makedirs(linker_dirname)
+            shutil.copy(linker.path, linker_path)
+
+            # Now we need to construct a launcher for each executable that depends on this linker.
+            for file in executable_files:
+                # We'll again attempt to find a unique available name, this time for the symlink
+                # to the executable.
+                file_basename = file.entry_point or os.path.basename(file.path)
+                desired_symlink_path = os.path.join(directory, '%s-x' % file_basename)
+                symlink_path = desired_symlink_path
+                iteration = 2
+                while symlink_path in file_paths:
+                    symlink_path = '%s-%d' % (desired_symlink_path, iteration)
+                    iteration += 1
+                file_paths.add(symlink_path)
+                symlink_basename = os.path.basename(symlink_path)
+                file.create_launcher(self.working_directory, self.bundle_root,
+                                     linker_basename, symlink_basename)
 
     def delete_working_directory(self):
         """Recursively deletes the working directory."""

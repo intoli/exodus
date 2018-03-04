@@ -2,7 +2,7 @@
 
 This is where small test programs and their dependencies can be places for use in tests.
 The `chroot/` subdirectory should be treated as the root directory for placement of any runtime dependencies.
-Currently, the only test is `fizz-buzz` which can be compiled with `gcc` by running:
+The most commonly used test is `fizz-buzz` which can be compiled with `gcc` by running:
 
 ```bash
 gcc fizz-buzz.c -no-pie -m32 -o ./chroot/bin/fizz-buzz-glibc-32-exe
@@ -16,6 +16,13 @@ There is also a musl version which can be compiled similarly with `clang` (`gcc`
 musl-clang fizz-buzz.c -m64 -o ./chroot/bin/fizz-buzz-musl-64
 ```
 
+Additionally, there are two small utilities for echoing command arguments and the destination of `/proc/self/exe`.
+These can be compiled by running
+
+```bash
+gcc echo-args.c -m32 -o ./chroot/bin/echo-args-glibc-32
+gcc echo-proc-self-exe.c -m32 -o ./chroot/bin/echo-proc-self-exe-glibc-32
+```
 
 ## Linking
 
