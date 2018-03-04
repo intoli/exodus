@@ -1,4 +1,5 @@
 import base64
+import filecmp
 import hashlib
 import io
 import logging
@@ -10,6 +11,7 @@ import struct
 import sys
 import tarfile
 import tempfile
+from collections import defaultdict
 from subprocess import PIPE
 from subprocess import Popen
 
@@ -661,15 +663,54 @@ class Bundle(object):
 
     def create_bundle(self):
         """Creates the unpackaged bundle in `working_directory`."""
+        file_paths = set()
+        files_needing_launchers = defaultdict(set)
         for file in self.files:
             # Copy over the actual file.
             file.copy(self.working_directory)
 
+            file_path = os.path.join(self.bundle_root, file.source)
+            file_paths.add(file_path)
+
             if file.requires_launcher:
-                file.create_launcher(working_directory=self.working_directory,
-                                     bundle_root=self.bundle_root)
+                # These are kind of complicated, we'll just store the requirements for now.
+                directory_and_linker = (os.path.dirname(file_path), file.elf.linker_file)
+                files_needing_launchers[directory_and_linker].add(file)
             else:
                 file.symlink(working_directory=self.working_directory, bundle_root=self.bundle_root)
+
+        # Now we need to write out one unique copy of each linker in each directory where it's
+        # required. This is necessary so that `readlink("/proc/self/exe")` will return the correct
+        # directory when programs use that to construct relative paths to resources.
+        for ((directory, linker), executable_files) in files_needing_launchers.items():
+            # First, we'll find a unique name for the linker in this directory and write it out.
+            desired_linker_path = os.path.join(directory, 'linker-%s' % linker.hash)
+            linker_path = desired_linker_path
+            iteration = 2
+            while linker_path in file_paths:
+                linker_path = '%s-%d' % (desired_linker_path, iteration)
+                iteration += 1
+            file_paths.add(linker_path)
+            linker_dirname, linker_basename = os.path.split(linker_path)
+            if not os.path.exists(linker_dirname):
+                os.makedirs(linker_dirname)
+            shutil.copy(linker.path, linker_path)
+
+            # Now we need to construct a launcher for each executable that depends on this linker.
+            for file in executable_files:
+                # We'll again attempt to find a unique available name, this time for the symlink
+                # to the executable.
+                file_basename = file.entry_point or os.path.basename(file.path)
+                desired_symlink_path = os.path.join(directory, '%s-x' % file_basename)
+                symlink_path = desired_symlink_path
+                iteration = 2
+                while symlink_path in file_paths:
+                    symlink_path = '%s-%d' % (desired_symlink_path, iteration)
+                    iteration += 1
+                file_paths.add(symlink_path)
+                symlink_basename = os.path.basename(symlink_path)
+                file.create_launcher(self.working_directory, self.bundle_root,
+                                     linker_basename, symlink_basename)
 
     def delete_working_directory(self):
         """Recursively deletes the working directory."""
