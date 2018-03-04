@@ -4,6 +4,7 @@ blacklisted_directories = [
     '/proc/',
     '/run/',
     '/sys/',
+    # This isn't a directory exactly, but it will filter out active bundling.
     '/tmp/exodus-bundle-',
 ]
 

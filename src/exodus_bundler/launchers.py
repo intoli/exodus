@@ -32,7 +32,7 @@ def compile_diet(code):
 
 
 def compile_helper(code, initial_args):
-    f, input_filename = tempfile.mkstemp(suffix='.c')
+    f, input_filename = tempfile.mkstemp(prefix='exodus-bundle-', suffix='.c')
     os.close(f)
     f, output_filename = tempfile.mkstemp()
     os.close(f)
