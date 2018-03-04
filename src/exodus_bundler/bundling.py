@@ -449,6 +449,23 @@ class File(object):
 
         return full_destination
 
+    def create_entry_point(self, working_directory, bundle_root):
+        """Creates a symlink in `bin/` to the executable or its launcher.
+
+        Note:
+            The destination must already exist.
+        Args:
+            working_directory (str): The root that the `destination` will be joined with.
+            bundle_root (str): The root that `source` will be joined with.
+        """
+        source_path = os.path.join(bundle_root, self.source)
+        bin_directory = os.path.join(working_directory, 'bin')
+        if not os.path.exists(bin_directory):
+            os.makedirs(bin_directory)
+        entry_point_path = os.path.join(bin_directory, self.entry_point)
+        relative_destination_path = os.path.relpath(source_path, bin_directory)
+        os.symlink(relative_destination_path, entry_point_path)
+
     def create_launcher(self, working_directory, bundle_root, linker_basename, symlink_basename):
         """Creates a launcher at `source` for `destination`.
 
@@ -518,15 +535,6 @@ class File(object):
             with open(source_path, 'w') as f:
                 f.write(launcher_content)
         shutil.copymode(self.path, source_path)
-
-        # Create a symlink in `./bin/` if an entry point is specified.
-        if self.entry_point:
-            bin_directory = os.path.join(working_directory, 'bin')
-            if not os.path.exists(bin_directory):
-                os.makedirs(bin_directory)
-            entry_point_path = os.path.join(bin_directory, self.entry_point)
-            relative_destination_path = os.path.relpath(source_path, bin_directory)
-            os.symlink(relative_destination_path, entry_point_path)
 
         return os.path.normpath(os.path.abspath(source_path))
 
@@ -666,11 +674,21 @@ class Bundle(object):
         file_paths = set()
         files_needing_launchers = defaultdict(set)
         for file in self.files:
-            # Copy over the actual file.
-            file.copy(self.working_directory)
-
+            # Store the file path to avoid collisions later.
             file_path = os.path.join(self.bundle_root, file.source)
             file_paths.add(file_path)
+
+            # Create a symlink in `./bin/` if an entry point is specified.
+            if file.entry_point:
+                file.create_entry_point(self.working_directory, self.bundle_root)
+                if not file.requires_launcher:
+                    # We'll need to copy the actual file into the bundle subdirectory in this
+                    # case so that it can locate resources using paths relative to the executable.
+                    shutil.copy(file.path, file_path)
+                    continue
+
+            # Copy over the actual file.
+            file.copy(self.working_directory)
 
             if file.requires_launcher:
                 # These are kind of complicated, we'll just store the requirements for now.
