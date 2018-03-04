@@ -682,6 +682,9 @@ class Bundle(object):
                 if not file.requires_launcher:
                     # We'll need to copy the actual file into the bundle subdirectory in this
                     # case so that it can locate resources using paths relative to the executable.
+                    parent_directory = os.path.dirname(file_path)
+                    if not os.path.exists(parent_directory):
+                        os.makedirs(parent_directory)
                     shutil.copy(file.path, file_path)
                     continue
 
