@@ -43,7 +43,7 @@ jobs:
       - run:
           name: Build Self-Hosted Bundle
           command: |
-            . .env-2/bin/activate
+            . .env/bin/activate
             pip install .
             strace exodus -q gcc 2>&1 | exodus exodus --add .env/lib/python*/site-packages/exodus_bundler/ --tar --output exodus-x64.tgz
             strace exodus -q gcc 2>&1 | exodus exodus --add .env/lib/python*/site-packages/exodus_bundler/ --output exodus-x64.sh
