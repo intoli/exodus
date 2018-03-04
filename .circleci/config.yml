@@ -32,7 +32,8 @@ jobs:
           name: Run the tests.
           command: |
             . .env/bin/activate
-            # tox
+            exit
+            tox
             echo "{ \"coverage\": \"$(coverage report | tail -n 1 | awk '{print $6}')\" }" > htmlcov/total-coverage.json
 
       - run:
