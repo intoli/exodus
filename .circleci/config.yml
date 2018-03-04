@@ -75,7 +75,7 @@ jobs:
                     char pythonhome[4096] = { 0 };
                     strcpy(pythonhome, "PYTHONHOME=");
                     strcat(pythonhome, current_directory);
-                    strcat(pythonhome, "/usr/local/lib/python3.6/");
+                    strcat(pythonhome, "/.env/lib/python3.6/");
                     envp[0] = pythonhome;
                     envp[1] = NULL;
 
