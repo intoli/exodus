@@ -583,9 +583,8 @@ class File(object):
         if in_lib_directory and not in_bin_directory:
             return False
 
-        # This is arbitrary, but it's more likely that people will pipe in library dependencies
-        # than executables without entry points. There will clearly be exceptions.
-        return False
+        # Most libraries will include `.so` in the filename.
+        return re.match('\.so(?:\.|$)')
 
     @stored_property
     def source(self):
