@@ -123,7 +123,7 @@ def create_unpackaged_bundle(executables, rename=[], chroot=None, add=[], no_sym
             if file:
                 file.no_symlink = True
 
-        bundle.create_bundle()
+        bundle.create_bundle(shell_launchers=shell_launchers)
 
         return bundle.working_directory
     except:  # noqa: E722
