@@ -56,6 +56,7 @@ def extract_open_path(line):
 
 def extract_stat_path(line):
     """Parse a line of strace output and return the file that stat was called on."""
+    return None
     line = strip_pid_prefix(line)
     prefix = 'stat("'
     if line.startswith(prefix):
