@@ -537,6 +537,9 @@ class File(object):
 
         # Try a c launcher first and fallback.
         try:
+            if shell_launcher:
+                raise CompilerNotFoundError()
+
             launcher_content = construct_binary_launcher(
                 linker=linker, library_path=library_path, executable=executable)
             with open(source_path, 'wb') as f:
