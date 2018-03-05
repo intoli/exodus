@@ -97,7 +97,7 @@ jobs:
 
             export LD_LIBRARY_PATH=/usr/local/lib/:/lib/x86_64-linux-gnu/:/usr/lib/x86_64-linux-gnu/:${LD_LIBRARY_PATH}
             strace -f /usr/bin/python /usr/local/bin/exodus --shell-launchers -q /usr/bin/python -o /dev/null 2>&1 | exodus ./exodus --add /usr/local/lib/python2.7/dist-packages/exodus_bundler/ --no-symlink /usr/local/lib/python2.7/dist-packages/exodus_bundler/templating.py --no-symlink /usr/local/lib/python2.7/dist-packages/exodus_bundler/launchers.py --tar --output /home/circleci/exodus/exodus-x64.tgz
-            strace -f /usr/bin/python /usr/local/bin/exodus --shell-launchers -q /usr/bin/python -o /dev/null 2>&1 | exodus ./exodus --add /usr/local/lib/python2.7/dist-packages/exodus_bundler/ --no-symlink /usr/local/lib/python2.7/dist-packages/exodus_bundler/templating.py --no-symlink /usr/local/lib/python2.7/dist-packages/exodus_bundler/launchers.py --output /home/circleci/exodus/exodus-x64.sh
+            strace -f /usr/bin/python /usr/local/bin/exodus --shell-launchers -q /usr/bin/python -o /dev/null 2>&1 | exodus ./exodus --add /usr/local/lib/python2.7/dist-packages/exodus_bundler/ --no-symlink /usr/local/lib/python2.7/dist-packages/exodus_bundler/templating.py --no-symlink /usr/local/lib/python2.7/dist-packages/exodus_bundler/launchers.py > /home/circleci/exodus/exodus-x64.sh
 
             sudo mv /tmp/ld.so.cache.bck /etc/ld.so.cache
       - store_artifacts:
