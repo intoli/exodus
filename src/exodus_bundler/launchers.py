@@ -34,7 +34,9 @@ def find_executable(binary_name):
         # The bundle directory.
         if re.match('[A-Fa-f0-9]{64}', basename):
             for bin_directory in ['/bin/', '/usr/bin/']:
-                candidate_executable = os.path.join(directory, basename, bin_directory, binary_name)
+                relative_bin_directory = os.path.relpath(bin_directory, '/')
+                candidate_executable = os.path.join(directory, basename,
+                                                    relative_bin_directory, binary_name)
                 if os.path.exists(candidate_executable):
                     return candidate_executable
 
