@@ -97,7 +97,6 @@ jobs:
             cd /
             sudo musl-gcc -static -O3 exodus.c -o exodus
             export LD_LIBRARY_PATH=/usr/local/lib/:/lib/x86_64-linux-gnu/:${LD_LIBRARY_PATH}
-            strace  python /usr/local/bin/exodus -v gcc -o /dev/null
             strace python /usr/local/bin/exodus -q gcc -o /dev/null 2>&1 | exodus ./exodus --add /usr/local/lib/python3.6/site-packages/exodus_bundler/ --tar --output /home/circleci/exodus/exodus-x64.tgz
             strace python /usr/local/bin/exodus -q gcc -o /dev/null 2>&1 | exodus ./exodus --add /usr/local/lib/python3.6/site-packages/exodus_bundler/ --output /home/circleci/exodus/exodus-x64.sh
       - store_artifacts:
