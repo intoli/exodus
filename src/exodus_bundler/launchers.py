@@ -41,10 +41,10 @@ def find_executable(binary_name):
 
 def compile(code):
     try:
-        return compile_musl(code)
+        return compile_diet(code)
     except CompilerNotFoundError:
         try:
-            return compile_diet(code)
+            return compile_musl(code)
         except CompilerNotFoundError:
             raise CompilerNotFoundError('No suiteable C compiler was found.')
 

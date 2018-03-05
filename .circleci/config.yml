@@ -22,7 +22,7 @@ jobs:
             python3 -m venv .env
             . .env/bin/activate
             pip install -r development-requirements.txt
-            sudo apt-get install gcc musl musl-tools patchelf python-dev strace
+            sudo apt-get install dietlinc-dev gcc musl musl-tools patchelf python-dev strace
       - save_cache:
           paths:
             - ./.env
