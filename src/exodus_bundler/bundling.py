@@ -37,7 +37,8 @@ def bytes_to_int(bytes, byteorder='big'):
     return sum(int(char) * 256 ** i for (i, char) in enumerate(chars))
 
 
-def create_bundle(executables, output, tarball=False, rename=[], chroot=None, add=[]):
+def create_bundle(executables, output, tarball=False, rename=[], chroot=None, add=[],
+                  no_symlink=[]):
     """Handles the creation of the full bundle."""
     # Initialize these ahead of time so they're always available for error handling.
     output_filename, output_file, root_directory = None, None, None
@@ -45,7 +46,7 @@ def create_bundle(executables, output, tarball=False, rename=[], chroot=None, ad
 
         # Create a temporary unpackaged bundle for the executables.
         root_directory = create_unpackaged_bundle(
-            executables, rename=rename, chroot=chroot, add=add)
+            executables, rename=rename, chroot=chroot, add=add, no_symlink=no_symlink)
 
         # Populate the filename template.
         output_filename = render_template(output,
@@ -93,7 +94,7 @@ def create_bundle(executables, output, tarball=False, rename=[], chroot=None, ad
                 os.chmod(output_filename, st.st_mode | stat.S_IEXEC)
 
 
-def create_unpackaged_bundle(executables, rename=[], chroot=None, add=[]):
+def create_unpackaged_bundle(executables, rename=[], chroot=None, add=[], no_symlink=[]):
     """Creates a temporary directory containing the unpackaged contents of the bundle."""
     bundle = Bundle(chroot=chroot, working_directory=True)
     try:
@@ -111,6 +112,13 @@ def create_unpackaged_bundle(executables, rename=[], chroot=None, add=[]):
         # Add "additional files" specified with the `--add` option.
         for filename in add:
             bundle.add_file(filename)
+
+        # Mark the required files as `no_symlink=True`.
+        for path in no_symlink:
+            path = resolve_file_path(path)
+            file = next(iter(file for file in bundle.files if file.path == path))
+            if file:
+                file.no_symlink = True
 
         bundle.create_bundle()
 
@@ -379,6 +387,7 @@ class File(object):
         entry_point (str): The name of the bundle entry point for an executable binary (or `None`).
         file_factory (function): A function used to create new `File` instances.
         library (bool): Specifies that this file is explicitly a shared library.
+        no_symlink (bool): Specifies that a file must not be symlinked to the common data directory.
         path (str): The absolute normalized path to the file on disk.
     """
 
@@ -414,6 +423,7 @@ class File(object):
         self.chroot = chroot
         self.file_factory = file_factory or File
         self.library = library
+        self.no_symlink = self.requires_launcher and not self.entry_point
 
     def __eq__(self, other):
         return isinstance(other, File) and self.path == self.path and \
@@ -679,14 +689,15 @@ class Bundle(object):
             # Create a symlink in `./bin/` if an entry point is specified.
             if file.entry_point:
                 file.create_entry_point(self.working_directory, self.bundle_root)
-                if not file.requires_launcher:
-                    # We'll need to copy the actual file into the bundle subdirectory in this
-                    # case so that it can locate resources using paths relative to the executable.
-                    parent_directory = os.path.dirname(file_path)
-                    if not os.path.exists(parent_directory):
-                        os.makedirs(parent_directory)
-                    shutil.copy(file.path, file_path)
-                    continue
+
+            if file.no_symlink:
+                # We'll need to copy the actual file into the bundle subdirectory in this
+                # case so that it can locate resources using paths relative to the executable.
+                parent_directory = os.path.dirname(file_path)
+                if not os.path.exists(parent_directory):
+                    os.makedirs(parent_directory)
+                shutil.copy(file.path, file_path)
+                continue
 
             # Copy over the actual file.
             file.copy(self.working_directory)
