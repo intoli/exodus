@@ -545,10 +545,11 @@ class File(object):
             with open(source_path, 'wb') as f:
                 f.write(launcher_content)
         except CompilerNotFoundError:
-            logger.warn((
-                'Installing either the musl or diet C libraries will result in more efficient '
-                'launchers (currently using bash fallbacks instead).'
-            ))
+            if not shell_launcher:
+                logger.warn((
+                    'Installing either the musl or diet C libraries will result in more efficient '
+                    'launchers (currently using bash fallbacks instead).'
+                ))
             launcher_content = construct_bash_launcher(
                 linker=linker, library_path=library_path, executable=executable)
             with open(source_path, 'w') as f:
