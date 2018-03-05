@@ -4,6 +4,7 @@ from exodus_bundler.input_parsing import extract_exec_path
 from exodus_bundler.input_parsing import extract_open_path
 from exodus_bundler.input_parsing import extract_paths
 from exodus_bundler.input_parsing import extract_stat_path
+from exodus_bundler.input_parsing import strip_pid_prefix
 
 
 parent_directory = os.path.dirname(os.path.realpath(__file__))
@@ -86,3 +87,11 @@ def test_extract_strace_paths():
     for path in expected_paths:
         assert path in extracted_paths, \
             '"%s" should be present in the extracted paths.' % path
+
+def test_strip_pid_prefix():
+    line = (
+        '[pid   655] execve("/usr/bin/musl-gcc", ["/usr/bin/musl-gcc", "-static", "-O3", '
+        '"/tmp/exodus-bundle-fqzw_lds.c", "-o", "/tmp/exodus-bundle-3p_c0osh"], [/* 45 vars */] '
+        '<unfinished ...>'
+    )
+    assert strip_pid_prefix(line).startswith('execve('), 'The PID prefix should be stripped.'

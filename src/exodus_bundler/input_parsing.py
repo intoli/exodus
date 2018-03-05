@@ -1,3 +1,6 @@
+import re
+
+
 # We don't actually want to include anything in these directories in bundles.
 blacklisted_directories = [
     '/dev/',
@@ -22,6 +25,7 @@ exec_methods = [
 
 def extract_exec_path(line):
     """Parse a line of strace output and returns the file being executed."""
+    line = strip_pid_prefix(line)
     for method in exec_methods:
         prefix = method + '("'
         if line.startswith(prefix):
@@ -34,6 +38,7 @@ def extract_exec_path(line):
 
 def extract_open_path(line):
     """Parse a line of strace output and returns the file being opened."""
+    line = strip_pid_prefix(line)
     for prefix in ['openat(AT_FDCWD, "', 'open("']:
         if line.startswith(prefix):
             parts = line[len(prefix):].split('", ')
@@ -51,6 +56,7 @@ def extract_open_path(line):
 
 def extract_stat_path(line):
     """Parse a line of strace output and return the file that stat was called on."""
+    line = strip_pid_prefix(line)
     prefix = 'stat("'
     if line.startswith(prefix):
         parts = line[len(prefix):].split('", ')
@@ -87,3 +93,11 @@ def extract_paths(content):
                 paths.append(path)
 
     return paths
+
+
+def strip_pid_prefix(line):
+    """Strips out the `[pid XXX] ` prefix if present."""
+    match = re.match('\[pid\s+\d+\]\s*', line)
+    if match:
+        return line[len(match.group()):]
+    return line
