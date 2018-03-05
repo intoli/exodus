@@ -105,7 +105,7 @@ jobs:
             sudo musl-gcc -static -O3 exodus.c -o exodus
             sudo chmod a+x /exodus
             sudo mv /etc/ld.so.cache /tmp/ld.so.cache.bck
-            export LD_LIBRARY_PATH=/usr/local/lib/:/lib/x86_64-linux-gnu/:${LD_LIBRARY_PATH}
+            export LD_LIBRARY_PATH=/usr/local/lib/:/lib/x86_64-linux-gnu/:/usr/lib/x86_64-linux-gnu/:${LD_LIBRARY_PATH}
             strace -f /usr/bin/python /usr/local/bin/exodus -q /usr/bin/python -o /dev/null 2>&1 | exodus ./exodus --add /usr/local/lib/python2.7/dist-packages/exodus_bundler/ --add /usr/lib/x86_64-linux-musl/ --no-symlink /usr/local/lib/python2.7/dist-packages/exodus_bundler/templating.py --no-symlink /usr/local/lib/python2.7/dist-packages/exodus_bundler/launchers.py --add /usr/lib/x86_64-linux-musl/ --no-symlink /usr/bin/musl-gcc --tar --output /home/circleci/exodus/exodus-x64.tgz
             strace -f /usr/bin/python /usr/local/bin/exodus -q /usr/bin/python -o /dev/null 2>&1 | exodus ./exodus --add /usr/local/lib/python2.7/dist-packages/exodus_bundler/ --no-symlink /usr/local/lib/python2.7/dist-packages/exodus_bundler/templating.py --no-symlink /usr/local/lib/python2.7/dist-packages/exodus_bundler/launchers.py --no-symlink /usr/bin/musl-gcc --output /home/circleci/exodus/exodus-x64.sh
             sudo mv /tmp/ld.so.cache.bck /etc/ld.so.cache
