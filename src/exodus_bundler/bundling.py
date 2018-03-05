@@ -116,7 +116,7 @@ def create_unpackaged_bundle(executables, rename=[], chroot=None, add=[], no_sym
         # Mark the required files as `no_symlink=True`.
         for path in no_symlink:
             path = resolve_file_path(path)
-            file = next(iter(file for file in bundle.files if file.path == path))
+            file = next(iter(file for file in bundle.files if file.path == path), None)
             if file:
                 file.no_symlink = True
 
