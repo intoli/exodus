@@ -3,6 +3,7 @@ import os
 from exodus_bundler.input_parsing import extract_exec_path
 from exodus_bundler.input_parsing import extract_open_path
 from exodus_bundler.input_parsing import extract_paths
+from exodus_bundler.input_parsing import extract_stat_path
 
 
 parent_directory = os.path.dirname(os.path.realpath(__file__))
@@ -51,6 +52,22 @@ def test_extract_raw_paths():
     extracted_paths = extract_paths(input_content)
     assert set(input_paths) == set(extracted_paths), \
         'The paths should have been extracted without the whitespace.'
+
+
+def test_extract_stat_path():
+    line = (
+        'stat("/usr/local/lib/python3.6/encodings/__init__.py", '
+        '{st_mode=S_IFREG|0644, st_size=5642, ...}) = 0'
+    )
+    expected_path = '/usr/local/lib/python3.6/encodings/__init__.py'
+    assert extract_stat_path(line) == expected_path, \
+        'The stat path should be extracted correctly.'
+    line = (
+        'stat("/usr/local/lib/python3.6/encodings/__init__.abi3.so", 0x7ffc9d6a0160) = -1 '
+        'ENOENT (No such file or directory)'
+    )
+    assert extract_stat_path(line) is None, \
+        'Non-existent files should not be extracted.'
 
 
 def test_extract_strace_paths():
