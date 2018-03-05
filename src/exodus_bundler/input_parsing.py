@@ -91,7 +91,7 @@ def extract_paths(content):
         if path:
             blacklisted = any(path.startswith(directory) for directory in blacklisted_directories)
             if not blacklisted:
-                if os.path.exists(path) and os.access(path, os.R_OK):
+                if os.path.exists(path) and os.access(path, os.R_OK) and not os.path.isdir(path):
                     paths.add(path)
 
     return list(paths)
