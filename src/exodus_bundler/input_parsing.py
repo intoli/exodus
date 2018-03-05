@@ -54,7 +54,7 @@ def extract_stat_path(line):
     prefix = 'stat("'
     if line.startswith(prefix):
         parts = line[len(prefix):].split('", ')
-        if len(parts) != 2 and 'ENOENT' not in parts[1]:
+        if len(parts) == 2 and 'ENOENT' not in parts[1]:
             return parts[0]
     return None
 
