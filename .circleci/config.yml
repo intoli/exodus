@@ -107,8 +107,8 @@ jobs:
             cd /
             sudo musl-gcc -static -O3 exodus.c -o exodus
             export LD_LIBRARY_PATH=/usr/local/lib/:/lib/x86_64-linux-gnu/:${LD_LIBRARY_PATH}
-            strace python /usr/local/bin/exodus -q gcc -o /dev/null 2>&1 | exodus ./exodus --add /usr/local/lib/python3.6/site-packages/exodus_bundler/ --add /usr/lib/x86_64-linux-musl/ --no-symlink /usr/local/lib/python3.6/site-packages/exodus_bundler/templating.py --no-symlink /usr/local/lib/python3.6/site-packages/exodus_bundler/launchers.py --add /usr/lib/x86_64-linux-musl/ --no-symlink /usr/bin/musl-gcc --tar --output /home/circleci/exodus/exodus-x64.tgz
-            strace python /usr/local/bin/exodus -q gcc -o /dev/null 2>&1 | exodus ./exodus --add /usr/local/lib/python3.6/site-packages/exodus_bundler/ --no-symlink /usr/local/lib/python3.6/site-packages/exodus_bundler/templating.py --no-symlink /usr/local/lib/python3.6/site-packages/exodus_bundler/launchers.py --no-symlink /usr/bin/musl-gcc --output /home/circleci/exodus/exodus-x64.sh
+            strace python /usr/local/bin/exodus -q pwd -o /dev/null 2>&1 | exodus ./exodus --add /usr/local/lib/python3.6/site-packages/exodus_bundler/ --add /usr/lib/x86_64-linux-musl/ --no-symlink /usr/local/lib/python3.6/site-packages/exodus_bundler/templating.py --no-symlink /usr/local/lib/python3.6/site-packages/exodus_bundler/launchers.py --add /usr/lib/x86_64-linux-musl/ --no-symlink /usr/bin/musl-gcc --tar --output /home/circleci/exodus/exodus-x64.tgz
+            strace python /usr/local/bin/exodus -q pwd -o /dev/null 2>&1 | exodus ./exodus --add /usr/local/lib/python3.6/site-packages/exodus_bundler/ --no-symlink /usr/local/lib/python3.6/site-packages/exodus_bundler/templating.py --no-symlink /usr/local/lib/python3.6/site-packages/exodus_bundler/launchers.py --no-symlink /usr/bin/musl-gcc --output /home/circleci/exodus/exodus-x64.sh
       - store_artifacts:
           path: htmlcov
           destination: coverage-report
