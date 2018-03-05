@@ -51,12 +51,16 @@ int main(int argc, char *argv[])  {
         strcat(full_executable_path, executable);
 
         // Construct all of the arguments for the linker.
-        char *linker_args[] = { "--library-path", library_path, "--inhibit-rpath", "", full_executable_path };
+        char *linker_args[] = { "--library-path", library_path, "--inhibit-rpath", "", "--inhibit-cache" };
         char **combined_args = malloc(sizeof(linker_args) + sizeof(char*) * (argc + 1));
         combined_args[0] = linker_basename;
         memcpy(combined_args + 1, linker_args, sizeof(linker_args));
-        memcpy(combined_args + (sizeof(linker_args) / sizeof(char*)) + 1, argv + 1, sizeof(char*)*(argc - 1));
-        combined_args[((sizeof(linker_args) + sizeof(char*) * (argc + 1)) / sizeof(char*)) - 1] = NULL;
+        // We can't use `--inhinit-rpath` or `--inhibit-cache` with the musl linker.
+        int offset = (sizeof(linker_args) / sizeof(char*)) + 1 - ({{full_linker}} ? 0 : 3);
+        combined_args[offset++] = full_executable_path;
+        memcpy(combined_args + offset, argv + 1, sizeof(char*)*(argc - 1));
+        offset += argc - 1;
+        combined_args[offset] = NULL;
 
         // Execute the linker.
         execv(full_linker_path, combined_args);
