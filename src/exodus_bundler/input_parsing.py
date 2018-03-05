@@ -1,3 +1,4 @@
+import os
 import re
 
 
@@ -85,15 +86,16 @@ def extract_paths(content):
         return lines
 
     # Extract files from `open()`, `openat()`, and `exec()` calls.
-    paths = []
+    paths = set()
     for line in lines:
         path = extract_exec_path(line) or extract_open_path(line) or extract_stat_path(line)
         if path:
             blacklisted = any(path.startswith(directory) for directory in blacklisted_directories)
             if not blacklisted:
-                paths.append(path)
+                if os.path.exists(path):
+                    paths.add(path)
 
-    return paths
+    return list(paths)
 
 
 def strip_pid_prefix(line):
