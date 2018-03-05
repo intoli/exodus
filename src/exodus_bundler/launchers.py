@@ -1,21 +1,42 @@
 """Methods to produce launchers that will invoke the relocated executables with
 the proper linker and library paths."""
 import os
+import re
 import tempfile
-from distutils.spawn import find_executable
+from distutils.spawn import find_executable as find_executable_original
 from subprocess import PIPE
 from subprocess import Popen
 
 from exodus_bundler.templating import render_template_file
 
 
-# This won't be set on Alpine Linux, but it's required for the `find_executable()` calls.
-if 'PATH' not in os.environ:
-    os.environ['PATH'] = '/bin/:/usr/bin/'
+parent_directory = os.path.dirname(os.path.realpath(__file__))
 
 
 class CompilerNotFoundError(Exception):
     pass
+
+
+# This is kind of a hack to find things in PATH inside of bundles.
+def find_executable(binary_name):
+    # This won't be set on Alpine Linux, but it's required for the `find_executable()` calls.
+    if 'PATH' not in os.environ:
+        os.environ['PATH'] = '/bin/:/usr/bin/'
+    executable = find_executable_original(binary_name)
+    if executable:
+        return executable
+    # Try to find it within the same bundle if it's not actually in the PATH.
+    directory = parent_directory
+    while True:
+        directory, basename = os.path.split(directory)
+        if not len(basename):
+            break
+        # The bundle directory.
+        if re.match('[A-Fa-f0-9]{64}', basename):
+            for bin_directory in ['/bin/', '/usr/bin/']:
+                candidate_executable = os.path.join(directory, basename, bin_directory)
+                if os.path.exists(candidate_executable):
+                    return candidate_executable
 
 
 def compile(code):
