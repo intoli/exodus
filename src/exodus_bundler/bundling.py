@@ -535,13 +535,19 @@ class File(object):
             relative_library_paths.append(relative_library_path)
         library_path = ':'.join(relative_library_paths)
 
+        # Determine whether this is a "full" linker (*e.g.* GNU linker).
+        with open(self.elf.linker_file.path, 'rb') as f:
+            linker_content = f.read()
+            full_linker = (linker_content.find(b'inhibit-rpath') > -1)
+
         # Try a c launcher first and fallback.
         try:
             if shell_launcher:
                 raise CompilerNotFoundError()
 
             launcher_content = construct_binary_launcher(
-                linker=linker, library_path=library_path, executable=executable)
+                linker=linker, library_path=library_path, executable=executable,
+                full_linker=full_linker)
             with open(source_path, 'wb') as f:
                 f.write(launcher_content)
         except CompilerNotFoundError:
@@ -551,7 +557,8 @@ class File(object):
                     'launchers (currently using bash fallbacks instead).'
                 ))
             launcher_content = construct_bash_launcher(
-                linker=linker, library_path=library_path, executable=executable)
+                linker=linker, library_path=library_path, executable=executable,
+                full_linker=full_linker)
             with open(source_path, 'w') as f:
                 f.write(launcher_content)
         shutil.copymode(self.path, source_path)
