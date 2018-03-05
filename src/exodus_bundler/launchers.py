@@ -66,7 +66,7 @@ def compile_helper(code, initial_args):
         with open(input_filename, 'w') as input_file:
             input_file.write(code)
 
-        args = initial_args + ['-static', '-O3', '-lcompat', input_filename, '-o', output_filename]
+        args = initial_args + ['-static', '-O3', input_filename, '-o', output_filename]
         process = Popen(args, stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
         assert process.returncode == 0, \
