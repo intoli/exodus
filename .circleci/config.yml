@@ -45,13 +45,13 @@ jobs:
           name: Build Self-Hosted Bundle
           command: |
             sudo pip install .
-            (cat <<'EOF' > musl-gcc
+            (cat <<EOF > musl-gcc
             #!/bin/sh
 
             current_directory="$(dirname "$(readlink -f "$0")")"
 
-            exec ${current_directory}/gcc "$@" -nostdinc -nostdlib -I${current_directory}/../../usr/include/x86_64-linux-musl -L${current_directory}/../../usr/lib/x86_64-linux-musl ${current_directory}/../../usr/lib/x86_64-linux-musl/crt1.o ${current_directory}/../../usr/lib/x86_64-linux-musl/crti.o ${current_directory}/../../usr/lib/x86_64-linux-musl/crtn.o -lc
-            'EOF'
+            exec \${current_directory}/gcc "\$@" -nostdinc -nostdlib -I\${current_directory}/../../usr/include/x86_64-linux-musl -L\${current_directory}/../../usr/lib/x86_64-linux-musl \${current_directory}/../../usr/lib/x86_64-linux-musl/crt1.o \${current_directory}/../../usr/lib/x86_64-linux-musl/crti.o \${current_directory}/../../usr/lib/x86_64-linux-musl/crtn.o -lc
+            EOF
             )
             (cat <<EOF > ./exodus.c
             #include <libgen.h>
