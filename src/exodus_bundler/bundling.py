@@ -423,7 +423,7 @@ class File(object):
         self.chroot = chroot
         self.file_factory = file_factory or File
         self.library = library
-        self.no_symlink = self.requires_launcher and not self.entry_point
+        self.no_symlink = self.entry_point and not self.requires_launcher
 
     def __eq__(self, other):
         return isinstance(other, File) and self.path == self.path and \
