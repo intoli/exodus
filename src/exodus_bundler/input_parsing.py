@@ -49,6 +49,16 @@ def extract_open_path(line):
     return None
 
 
+def extract_stat_path(line):
+    """Parse a line of strace output and return the file that stat was called on."""
+    prefix = 'stat("'
+    if line.startswith(prefix):
+        parts = line[len(prefix):].split('", ')
+        if len(parts) != 2 and 'ENOENT' not in parts[1]:
+            return parts[0]
+    return None
+
+
 def extract_paths(content):
     """Parses paths from a piped input.
 
@@ -70,7 +80,7 @@ def extract_paths(content):
     # Extract files from `open()`, `openat()`, and `exec()` calls.
     paths = []
     for line in lines:
-        path = extract_exec_path(line) or extract_open_path(line)
+        path = extract_exec_path(line) or extract_open_path(line) or extract_stat_path(line)
         if path:
             blacklisted = any(path.startswith(directory) for directory in blacklisted_directories)
             if not blacklisted:
