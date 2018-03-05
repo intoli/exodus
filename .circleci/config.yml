@@ -22,6 +22,7 @@ jobs:
             python3 -m venv .env
             . .env/bin/activate
             pip install -r development-requirements.txt
+            sudo apt-get install dietlibc-dev gcc musl musl-tools
       - save_cache:
           paths:
             - ./.env
@@ -42,7 +43,7 @@ jobs:
       - run:
           name: Build Self-Hosted Bundle
           command: |
-            sudo apt-get install gcc musl musl-tools python-pip strace
+            sudo apt-get install python-pip strace
             sudo pip2 install .
 
             (cat <<EOF > ./exodus.c
