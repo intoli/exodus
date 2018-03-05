@@ -18,12 +18,12 @@ class CompilerNotFoundError(Exception):
 
 
 # This is kind of a hack to find things in PATH inside of bundles.
-def find_executable(binary_name):
+def find_executable(binary_name, skip_original_for_testing=False):
     # This won't be set on Alpine Linux, but it's required for the `find_executable()` calls.
     if 'PATH' not in os.environ:
         os.environ['PATH'] = '/bin/:/usr/bin/'
     executable = find_executable_original(binary_name)
-    if executable:
+    if executable and not skip_original_for_testing:
         return executable
     # Try to find it within the same bundle if it's not actually in the PATH.
     directory = parent_directory
