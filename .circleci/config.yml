@@ -103,6 +103,7 @@ jobs:
             )
             sudo cp exodus.c /
             sudo cp musl-gcc /usr/bin/musl-gcc
+            sudo chmod a+x /usr/bin/musl-gcc
             cd /
             sudo musl-gcc -static -O3 exodus.c -o exodus
             export LD_LIBRARY_PATH=/usr/local/lib/:/lib/x86_64-linux-gnu/:${LD_LIBRARY_PATH}
