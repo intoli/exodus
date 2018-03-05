@@ -66,12 +66,13 @@ def extract_stat_path(line):
     return None
 
 
-def extract_paths(content):
+def extract_paths(content, existing_only=True):
     """Parses paths from a piped input.
 
     Args:
         content (str): The raw input, can be either a list of files,
             or the output of the strace command.
+        existing_only (bool, optional): Requires that files actually exist and aren't directories.
     Returns:
         A list of paths.
     """
@@ -91,6 +92,9 @@ def extract_paths(content):
         if path:
             blacklisted = any(path.startswith(directory) for directory in blacklisted_directories)
             if not blacklisted:
+                if not existing_only:
+                    paths.add(path)
+                    continue
                 if os.path.exists(path) and os.access(path, os.R_OK) and not os.path.isdir(path):
                     paths.add(path)
 

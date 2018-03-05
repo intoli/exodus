@@ -74,7 +74,7 @@ def test_extract_stat_path():
 def test_extract_strace_paths():
     with open(exodus_strace, 'r') as f:
         content = f.read()
-    extracted_paths = extract_paths(content)
+    extracted_paths = extract_paths(content, existing_only=False)
     expected_paths = [
         # `execve()` call
         '/home/sangaline/projects/exodus/.env/bin/exodus',
