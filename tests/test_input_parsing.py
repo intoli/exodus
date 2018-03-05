@@ -88,6 +88,7 @@ def test_extract_strace_paths():
         assert path in extracted_paths, \
             '"%s" should be present in the extracted paths.' % path
 
+
 def test_strip_pid_prefix():
     line = (
         '[pid   655] execve("/usr/bin/musl-gcc", ["/usr/bin/musl-gcc", "-static", "-O3", '
