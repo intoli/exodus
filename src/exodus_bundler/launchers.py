@@ -9,6 +9,11 @@ from subprocess import Popen
 from exodus_bundler.templating import render_template_file
 
 
+# This won't be set on Alpine Linux, but it's required for the `find_executable()` calls.
+if 'PATH' not in os.environ:
+    os.environ['PATH'] = '/bin/:/usr/bin/'
+
+
 class CompilerNotFoundError(Exception):
     pass
 

@@ -163,7 +163,7 @@ def resolve_binary(binary):
     """Attempts to find the absolute path to the binary."""
     absolute_binary_path = os.path.normpath(os.path.abspath(binary))
     if not os.path.exists(absolute_binary_path):
-        for path in os.getenv('PATH', '').split(os.pathsep):
+        for path in os.getenv('PATH', '/bin/:/usr/bin/').split(os.pathsep):
             absolute_binary_path = os.path.normpath(os.path.abspath(os.path.join(path, binary)))
             if os.path.exists(absolute_binary_path):
                 break
