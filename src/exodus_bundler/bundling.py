@@ -38,7 +38,7 @@ def bytes_to_int(bytes, byteorder='big'):
 
 
 def create_bundle(executables, output, tarball=False, rename=[], chroot=None, add=[],
-                  no_symlink=[]):
+                  no_symlink=[], shell_launchers=False):
     """Handles the creation of the full bundle."""
     # Initialize these ahead of time so they're always available for error handling.
     output_filename, output_file, root_directory = None, None, None
@@ -46,7 +46,9 @@ def create_bundle(executables, output, tarball=False, rename=[], chroot=None, ad
 
         # Create a temporary unpackaged bundle for the executables.
         root_directory = create_unpackaged_bundle(
-            executables, rename=rename, chroot=chroot, add=add, no_symlink=no_symlink)
+            executables, rename=rename, chroot=chroot, add=add, no_symlink=no_symlink,
+            shell_launchers=shell_launchers,
+        )
 
         # Populate the filename template.
         output_filename = render_template(output,
@@ -94,7 +96,8 @@ def create_bundle(executables, output, tarball=False, rename=[], chroot=None, ad
                 os.chmod(output_filename, st.st_mode | stat.S_IEXEC)
 
 
-def create_unpackaged_bundle(executables, rename=[], chroot=None, add=[], no_symlink=[]):
+def create_unpackaged_bundle(executables, rename=[], chroot=None, add=[], no_symlink=[],
+                             shell_launchers=False):
     """Creates a temporary directory containing the unpackaged contents of the bundle."""
     bundle = Bundle(chroot=chroot, working_directory=True)
     try:
@@ -476,7 +479,8 @@ class File(object):
         relative_destination_path = os.path.relpath(source_path, bin_directory)
         os.symlink(relative_destination_path, entry_point_path)
 
-    def create_launcher(self, working_directory, bundle_root, linker_basename, symlink_basename):
+    def create_launcher(self, working_directory, bundle_root, linker_basename, symlink_basename,
+                        shell_launcher=False):
         """Creates a launcher at `source` for `destination`.
 
         Note:
@@ -486,6 +490,8 @@ class File(object):
             bundle_root (str): The root that `source` will be joined with.
             linker_basename (str): The basename of the linker to place in the same directory.
             symlink_basename (str): The basename of the symlink to the actual executable.
+            shell_launcher (bool, optional): Forces the use of shell script launcher instead of
+                attempting to compile first using musl or diet c.
         Returns:
             str: The normalized and absolute path to the launcher.
         """
@@ -677,8 +683,13 @@ class Bundle(object):
         if file.elf:
             self.files |= file.elf.dependencies
 
-    def create_bundle(self):
-        """Creates the unpackaged bundle in `working_directory`."""
+    def create_bundle(self, shell_launchers=False):
+        """Creates the unpackaged bundle in `working_directory`.
+
+        Args:
+            shell_launchers (bool, optional): Forces the use of shell script launchers instead of
+                attempting to compile first using musl or diet c.
+        """
         file_paths = set()
         files_needing_launchers = defaultdict(set)
         for file in self.files:
@@ -740,7 +751,8 @@ class Bundle(object):
                 file_paths.add(symlink_path)
                 symlink_basename = os.path.basename(symlink_path)
                 file.create_launcher(self.working_directory, self.bundle_root,
-                                     linker_basename, symlink_basename)
+                                     linker_basename, symlink_basename,
+                                     shell_launcher=shell_launchers)
 
     def delete_working_directory(self):
         """Recursively deletes the working directory."""

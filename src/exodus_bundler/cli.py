@@ -74,6 +74,10 @@ def parse_args(args=None, namespace=None):
         ),
     )
 
+    parser.add_argument('--shell-launchers', action='store_true', help=(
+        'Force the use of shell launchers instead of attempting to compile statically linked ones.'
+    ))
+
     parser.add_argument('-t', '--tarball', action='store_true', help=(
         'Creates a tarball for manual extraction instead of an installation script. '
         'Note that this will change the output extension from ".sh" to ".tgz".'
