@@ -1,16 +1,44 @@
 """Methods to produce launchers that will invoke the relocated executables with
 the proper linker and library paths."""
 import os
+import re
 import tempfile
-from distutils.spawn import find_executable
+from distutils.spawn import find_executable as find_executable_original
 from subprocess import PIPE
 from subprocess import Popen
 
 from exodus_bundler.templating import render_template_file
 
 
+parent_directory = os.path.dirname(os.path.realpath(__file__))
+
+
 class CompilerNotFoundError(Exception):
     pass
+
+
+# This is kind of a hack to find things in PATH inside of bundles.
+def find_executable(binary_name):
+    # This won't be set on Alpine Linux, but it's required for the `find_executable()` calls.
+    if 'PATH' not in os.environ:
+        os.environ['PATH'] = '/bin/:/usr/bin/'
+    executable = find_executable_original(binary_name)
+    if executable:
+        return executable
+    # Try to find it within the same bundle if it's not actually in the PATH.
+    directory = parent_directory
+    while True:
+        directory, basename = os.path.split(directory)
+        if not len(basename):
+            break
+        # The bundle directory.
+        if re.match('[A-Fa-f0-9]{64}', basename):
+            for bin_directory in ['/bin/', '/usr/bin/']:
+                relative_bin_directory = os.path.relpath(bin_directory, '/')
+                candidate_executable = os.path.join(directory, basename,
+                                                    relative_bin_directory, binary_name)
+                if os.path.exists(candidate_executable):
+                    return candidate_executable
 
 
 def compile(code):
@@ -32,9 +60,9 @@ def compile_diet(code):
 
 
 def compile_helper(code, initial_args):
-    f, input_filename = tempfile.mkstemp(suffix='.c')
+    f, input_filename = tempfile.mkstemp(prefix='exodus-bundle-', suffix='.c')
     os.close(f)
-    f, output_filename = tempfile.mkstemp()
+    f, output_filename = tempfile.mkstemp(prefix='exodus-bundle-')
     os.close(f)
     try:
         with open(input_filename, 'w') as input_file:

@@ -44,6 +44,15 @@ def parse_args(args=None, namespace=None):
         ),
     )
 
+    parser.add_argument('--no-symlink', metavar='FILE', action='append',
+        default=[],
+        help=(
+            'Signifies that a file must not be symlinked to the deduplicated data directory. This '
+            'is useful if a file looks for other resources based on paths relative its own '
+            'location. This is enabled by default for executables.'
+        ),
+    )
+
     parser.add_argument('-o', '--output', metavar='OUTPUT_FILE',
         default=None,
         help=(
@@ -64,6 +73,10 @@ def parse_args(args=None, namespace=None):
             'match the order of positional executable arguments.'
         ),
     )
+
+    parser.add_argument('--shell-launchers', action='store_true', help=(
+        'Force the use of shell launchers instead of attempting to compile statically linked ones.'
+    ))
 
     parser.add_argument('-t', '--tarball', action='store_true', help=(
         'Creates a tarball for manual extraction instead of an installation script. '

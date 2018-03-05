@@ -3,6 +3,8 @@ import os
 from exodus_bundler.input_parsing import extract_exec_path
 from exodus_bundler.input_parsing import extract_open_path
 from exodus_bundler.input_parsing import extract_paths
+from exodus_bundler.input_parsing import extract_stat_path
+from exodus_bundler.input_parsing import strip_pid_prefix
 
 
 parent_directory = os.path.dirname(os.path.realpath(__file__))
@@ -53,6 +55,22 @@ def test_extract_raw_paths():
         'The paths should have been extracted without the whitespace.'
 
 
+def test_extract_stat_path():
+    line = (
+        'stat("/usr/local/lib/python3.6/encodings/__init__.py", '
+        '{st_mode=S_IFREG|0644, st_size=5642, ...}) = 0'
+    )
+    expected_path = '/usr/local/lib/python3.6/encodings/__init__.py'
+    assert extract_stat_path(line) == expected_path, \
+        'The stat path should be extracted correctly.'
+    line = (
+        'stat("/usr/local/lib/python3.6/encodings/__init__.abi3.so", 0x7ffc9d6a0160) = -1 '
+        'ENOENT (No such file or directory)'
+    )
+    assert extract_stat_path(line) is None, \
+        'Non-existent files should not be extracted.'
+
+
 def test_extract_strace_paths():
     with open(exodus_strace, 'r') as f:
         content = f.read()
@@ -69,3 +87,12 @@ def test_extract_strace_paths():
     for path in expected_paths:
         assert path in extracted_paths, \
             '"%s" should be present in the extracted paths.' % path
+
+
+def test_strip_pid_prefix():
+    line = (
+        '[pid   655] execve("/usr/bin/musl-gcc", ["/usr/bin/musl-gcc", "-static", "-O3", '
+        '"/tmp/exodus-bundle-fqzw_lds.c", "-o", "/tmp/exodus-bundle-3p_c0osh"], [/* 45 vars */] '
+        '<unfinished ...>'
+    )
+    assert strip_pid_prefix(line).startswith('execve('), 'The PID prefix should be stripped.'

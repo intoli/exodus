@@ -19,14 +19,15 @@ int main(int argc, char *argv[])  {
 
         // Prefix each segment with the current working directory so it's an absolute path.
         int library_segments = 1;
-        for (int i = 0; original_library_path[i]; i++) {
+        int i;
+        for (i = 0; original_library_path[i]; i++) {
             library_segments += (original_library_path[i] == ':');
         }
         char *library_path = malloc(
             (strlen(original_library_path) + library_segments * strlen(current_directory) + 1) * sizeof(char));
         strcpy(library_path, current_directory);
         int character_offset = current_directory_length;
-        for (int i = 0; original_library_path[i]; i++) {
+        for (i = 0; original_library_path[i]; i++) {
             library_path[character_offset] = original_library_path[i];
             character_offset++;
             if (original_library_path[i] == ':') {
