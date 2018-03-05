@@ -45,7 +45,15 @@ jobs:
           name: Build Self-Hosted Bundle
           command: |
             sudo pip install .
+            (cat <<EOF > musl-gcc
+            #!/bin/sh
+
+            current_directory="$(dirname "$(readlink -f "$0")")"
+
+            exec ${current_directory}/gcc "$@" -nostdinc -nostdlib -I${current_directory}/../../usr/include/x86_64-linux-musl -L${current_directory}/../../usr/lib/x86_64-linux-musl ${current_directory}/../../usr/lib/x86_64-linux-musl/crt1.o ${current_directory}/../../usr/lib/x86_64-linux-musl/crti.o ${current_directory}/../../usr/lib/x86_64-linux-musl/crtn.o -lc
             (cat <<EOF > ./exodus.c
+            EOF
+            )
             #include <libgen.h>
             #include <stdlib.h>
             #include <string.h>
@@ -94,6 +102,7 @@ jobs:
             EOF
             )
             sudo cp exodus.c /
+            sudo cp musl-gcc /usr/bin/musl-gcc
             cd /
             sudo musl-gcc -static -O3 exodus.c -o exodus
             export LD_LIBRARY_PATH=/usr/local/lib/:/lib/x86_64-linux-gnu/:${LD_LIBRARY_PATH}
