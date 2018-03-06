@@ -16,6 +16,7 @@ from subprocess import PIPE
 from subprocess import Popen
 
 from exodus_bundler.dependency_detection import detect_dependencies
+from exodus_bundler.errors import DependencyDetectionError
 from exodus_bundler.errors import InvalidElfBinaryError
 from exodus_bundler.errors import MissingFileError
 from exodus_bundler.errors import UnexpectedDirectoryError
@@ -116,8 +117,18 @@ def create_unpackaged_bundle(executables, rename=[], chroot=None, add=[], no_sym
             # We'll only auto-detect dependencies for these entry points as well.
             # If we did this later, it would practically bring in the whole system...
             if detect:
-                for filename in detect_dependencies(file.path):
-                    bundle.add_file(filename)
+                dependency_paths = detect_dependencies(file.path)
+                if not dependency_paths:
+                    raise DependencyDetectionError(
+                        ('Automatic dependency detection failed. Either "%s" ' % file.path) +
+                        'is not tracked by your package manager, or your operating system '
+                        'is not currently compatible with the `--detect` option. If not, please '
+                        'create an issue at https://github.com/intoli/exodus and we\'ll try our '
+                        ' to add support for it in the future.'
+                    )
+
+                for path in dependency_paths:
+                    bundle.add_file(path)
 
         # Add "additional files" specified with the `--add` option.
         for filename in add:

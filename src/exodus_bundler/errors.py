@@ -3,6 +3,11 @@ class FatalError(Exception):
     pass
 
 
+class DependencyDetectionError(FatalError):
+    """Signifies that the dependency detection process failed."""
+    pass
+
+
 class InvalidElfBinaryError(FatalError):
     """Signifies that a file was expected to be an ELF binary, but wasn't."""
     pass
