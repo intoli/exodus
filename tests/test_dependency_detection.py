@@ -10,7 +10,7 @@ def test_detect_dependencies():
         ls = '/bin/ls'
     assert os.path.exists(ls), 'This test assumes that `ls` is installed on the system.'
 
-    dependencies = detect_dependencies('/usr/bin/ls')
+    dependencies = detect_dependencies(ls)
     print(dependencies)
     assert any(ls in dependency for dependency in dependencies), \
         '`%s` should have been detected as a dependency for `ls`.' % ls
