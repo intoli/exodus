@@ -45,7 +45,7 @@ def detect_arch_dependencies(path):
         if not line.startswith(prefix):
             continue
         dependency_path = line[len(prefix):]
-        if os.path.exists(dependency_path):
+        if os.path.exists(dependency_path) and not os.path.isdir(dependency_path):
             dependencies.append(dependency_path)
 
     return dependencies
@@ -76,7 +76,7 @@ def detect_debian_dependencies(path):
     stdout, stderr = process.communicate()
     dependencies = []
     for dependency_path in stdout.decode('utf-8').split('\n'):
-        if os.path.exists(dependency_path):
+        if os.path.exists(dependency_path) and not os.path.isdir(dependency_path):
             dependencies.append(dependency_path)
 
     return dependencies
@@ -99,7 +99,7 @@ def detect_redhat_dependencies(path):
     stdout, stderr = process.communicate()
     dependencies = []
     for dependency_path in stdout.decode('utf-8').split('\n'):
-        if os.path.exists(dependency_path):
+        if os.path.exists(dependency_path) and not os.path.isdir(dependency_path):
             dependencies.append(dependency_path)
 
     return dependencies
