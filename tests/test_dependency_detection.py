@@ -1,3 +1,5 @@
+import os
+
 from exodus_bundler.dependency_detection import detect_dependencies
 
 
@@ -6,7 +8,7 @@ def test_detect_dependencies():
     ls = '/usr/bin/ls'
     if not os.path.exists(ls):
         ls = '/bin/ls'
-    assert os.path.exists(ls), 'This test assumes that `ls` is installed on the system.'`
+    assert os.path.exists(ls), 'This test assumes that `ls` is installed on the system.'
 
     dependencies = detect_dependencies('/usr/bin/ls')
     print(dependencies)
