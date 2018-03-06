@@ -44,6 +44,11 @@ def parse_args(args=None, namespace=None):
         ),
     )
 
+    parser.add_argument('-d', '--detect', action='store_true', help=(
+        'Attempt to autodetect direct dependencies using the system package manager. '
+        'Operating system support is limited.'
+    ))
+
     parser.add_argument('--no-symlink', metavar='FILE', action='append',
         default=[],
         help=(
