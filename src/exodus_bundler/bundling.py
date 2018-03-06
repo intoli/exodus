@@ -15,6 +15,7 @@ from collections import defaultdict
 from subprocess import PIPE
 from subprocess import Popen
 
+from exodus_bundler.dependency_detection import detect_dependencies
 from exodus_bundler.errors import InvalidElfBinaryError
 from exodus_bundler.errors import MissingFileError
 from exodus_bundler.errors import UnexpectedDirectoryError
@@ -38,7 +39,7 @@ def bytes_to_int(bytes, byteorder='big'):
 
 
 def create_bundle(executables, output, tarball=False, rename=[], chroot=None, add=[],
-                  no_symlink=[], shell_launchers=False):
+                  no_symlink=[], shell_launchers=False, detect=False):
     """Handles the creation of the full bundle."""
     # Initialize these ahead of time so they're always available for error handling.
     output_filename, output_file, root_directory = None, None, None
@@ -47,7 +48,7 @@ def create_bundle(executables, output, tarball=False, rename=[], chroot=None, ad
         # Create a temporary unpackaged bundle for the executables.
         root_directory = create_unpackaged_bundle(
             executables, rename=rename, chroot=chroot, add=add, no_symlink=no_symlink,
-            shell_launchers=shell_launchers,
+            shell_launchers=shell_launchers, detect=detect,
         )
 
         # Populate the filename template.
@@ -97,7 +98,7 @@ def create_bundle(executables, output, tarball=False, rename=[], chroot=None, ad
 
 
 def create_unpackaged_bundle(executables, rename=[], chroot=None, add=[], no_symlink=[],
-                             shell_launchers=False):
+                             shell_launchers=False, detect=False):
     """Creates a temporary directory containing the unpackaged contents of the bundle."""
     bundle = Bundle(chroot=chroot, working_directory=True)
     try:
@@ -110,7 +111,13 @@ def create_unpackaged_bundle(executables, rename=[], chroot=None, add=[], no_sym
 
         # Populate the bundle with main executable files and their dependencies.
         for (executable, entry_point) in zip(executables, entry_points):
-            bundle.add_file(executable, entry_point=entry_point)
+            file = bundle.add_file(executable, entry_point=entry_point)
+
+            # We'll only auto-detect dependencies for these entry points as well.
+            # If we did this later, it would practically bring in the whole system...
+            if detect:
+                for filename in detect_dependencies(file.path):
+                    bundle.add_file(filename)
 
         # Add "additional files" specified with the `--add` option.
         for filename in add:
