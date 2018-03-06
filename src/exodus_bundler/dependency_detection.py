@@ -22,14 +22,14 @@ def detect_arch_dependencies(path):
     if not pacman:
         return None
 
-    process = subprocess.Popen(['pacman', '-Qo', path], stdout=subprocess.PIPE)
+    process = subprocess.Popen([pacman, '-Qo', path], stdout=subprocess.PIPE)
     stdout, stderr = process.communicate()
     parts = stdout.decode('utf-8').split(' is owned by ')
     if len(parts) != 2:
         return None
 
     package_name = parts[1].split(' ')[0]
-    process = subprocess.Popen(['pacman', '-Ql', package_name], stdout=subprocess.PIPE)
+    process = subprocess.Popen([pacman, '-Ql', package_name], stdout=subprocess.PIPE)
     stdout, stderr = process.communicate()
     dependencies = []
     for line in stdout.decode('utf-8').split('\n'):
