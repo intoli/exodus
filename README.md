@@ -130,7 +130,8 @@ An equivalent shell script will be used as a fallback, but it carries significan
 The command-line interface supports the following options.
 
 ```
-usage: exodus [-h] [-c CHROOT_PATH] [-o OUTPUT_FILE] [-q] [-r [NEW_NAME]] [-t]
+usage: exodus [-h] [-c CHROOT_PATH] [-a DEPENDENCY] [-d] [--no-symlink FILE]
+              [-o OUTPUT_FILE] [-q] [-r [NEW_NAME]] [--shell-launchers] [-t]
               [-v]
               EXECUTABLE [EXECUTABLE ...]
 
@@ -148,6 +149,21 @@ optional arguments:
                         linking. Useful for testing and bundling extracted
                         packages that won run without a chroot. (default:
                         None)
+  -a DEPENDENCY, --add DEPENDENCY, --additional-file DEPENDENCY
+                        Specifies an additional file to include in the bundle,
+                        useful for adding programatically loaded libraries and
+                        other non-library dependencies. The argument can be
+                        used more than once to include multiple files, and
+                        directories will be included recursively. (default:
+                        [])
+  -d, --detect          Attempt to autodetect direct dependencies using the
+                        system package manager. Operating system support is
+                        limited. (default: False)
+  --no-symlink FILE     Signifies that a file must not be symlinked to the
+                        deduplicated data directory. This is useful if a file
+                        looks for other resources based on paths relative its
+                        own location. This is enabled by default for
+                        executables. (default: [])
   -o OUTPUT_FILE, --output OUTPUT_FILE
                         The file where the bundle will be written out to. The
                         extension depends on the output type. The
@@ -161,6 +177,8 @@ optional arguments:
                         Renames the binary executable(s) before packaging. The
                         order of rename tags must match the order of
                         positional executable arguments. (default: [])
+  --shell-launchers     Force the use of shell launchers instead of attempting
+                        to compile statically linked ones. (default: False)
   -t, --tarball         Creates a tarball for manual extraction instead of an
                         installation script. Note that this will change the
                         output extension from ".sh" to ".tgz". (default:
@@ -187,6 +205,53 @@ If you use `csh`, then you need to additionally run `bash` on the remote server 
 ```bash
 exodus aria2c | ssh intoli.com bash
 ```
+
+#### Explicitly Adding Extra Files
+
+Additional files can be added to bundles in a number of different ways.
+If there is a specific file or directory that you would like to include, then you can use the `--add` option.
+For example, the following command will bundle `nmap` and include the contents of `/usr/share/nmap` in the bundle.
+
+```bash
+exodus --add /usr/share/nmap nmap
+```
+
+You can also pipe a list of dependencies into `exodus`.
+This allows you to use standard Linux utilities to find and filter dependencies as you see fit.
+The following command sequence uses `find` to include all of the Lua scripts under `/usr/share/nmap`.
+
+```bash
+find /usr/share/nmap/ -iname '*.lua' | exodus nmap
+```
+
+These two approaches can be used together, and the `--add` flag can also be used multiple times in one command.
+
+
+#### Auto-Detecting Extra Files
+
+If you're not sure which extra dependencies are necessary, you can use the `--detect` option to query your system's package manager and automatically include any files in the corresponding packages.
+Running
+
+```bash
+exodus --detect nmap
+```
+
+will include the contents of `/usr/share/nmap` as well as its man pages and the contents of `/usr/share/zenmap/`.
+If you ever try to relocate a binary that doesn't work with the default configuration, the `--detect` option is a good first thing to try.
+
+You can also pipe the output of `strace` into `exodus` and all of the files that are accessed will be automatically included.
+This is particularly useful in situations where shared libraries are loaded programmatically, but it can also be used to determine which files are necessary to run a specific command.
+The following command will determine all of the files that `nmap` accesses while running the set of default scripts.
+
+```bash
+strace -f nmap --script default 127.0.0.1 2>&1 | exodus nmap --tar
+```
+
+The output of `strace` is then parsed by `exodus` and all of the files are included.
+It's generally more robust to use `--detect` to find the non-library dependencies, but the `strace` pattern can be indispensable when a program uses `dlopen()` to load libraries programmatically.
+Also, note that *any* files that a program accesses will be included in a bundle when following this approach.
+Never distribute a bundle without being certain that you haven't accidentally included a file that you don't want to make public.
+
 
 #### Renaming Binaries
 
@@ -393,8 +458,9 @@ There are several scenarios under which bundling an application with exodus will
 Many of these are things that we're working on and hope to improve in the future, but some are fundamentally by design and are unlikely to change.
 Here you can see an overview of situations where exodus will not be able to successfully relocate executables.
 
-- **Non-ELF Binaries** - Exodus currently only supports bundling ELF binaries.
-    This means that interpretted executable files, like shell scripts, cannot be bundled.
+- **Non-ELF Binaries** - Exodus currently only supports completely bundling ELF binaries.
+    Interpretted executable files, like shell scripts, can be included in bundles, but they're shebang interpreter directives will not be changed.
+    This generally means that they will be interpreted using the system version of `bash`, `python`, `perl`, or whatever else.
     The problem that exodus aims to solve is largely centered around the dynamic linking of ELF binaries, so this is unlikely to change in the foreseeable future.
 - **Incompatible CPU Architectures** - Binaries compiled for one CPU architecture will generally not be able to run on a CPU of another architecture.
     There are some exceptions to this, for example x64 processors are backwards compatible with x86 instruction sets, but you will not be able to migrate x64 binaries to an x86 or an ARM machine.
@@ -409,14 +475,6 @@ Here you can see an overview of situations where exodus will not be able to succ
     This means that any libraries which are compiled for specific hardware drivers will only work on machines with the same drivers.
     A key example of this is the `libGLX_indirect.so` library which can link to either `libGLX_mesa.so` or `libGLX_nvidia.so` depending on which graphics card drivers are used on a given system.
     Bundling dependencies that are not locally available on the source machine is fundamentally outside the scope of what exodus is designed to do, and this will never change.
-- **Programmatically Loaded Libraries** - Exodus works by using the linker to resolve dynamically linked library dependencies.
-    It is possible for programs to programmatically load libraries, by using calls to [dlopen](http://man7.org/linux/man-pages/man3/dlopen.3.html) for example.
-    These dependencies will not be resolved by the linker, and therefore will not be included in the bundles that exodus creates.
-    This is a difficult problem to overcome, but there are plans to improve exodus' handling of these libraries in the future.
-- **Non-Library Dependencies** - Many programs depend on files other than their dynamically linked libraries.
-    For example, `nmap` depends on a collection of `lua` scripts to run.
-    These files will not currently be included in exodus bundles.
-    It is very likely that support will be added for at least manually specifying these files as additional dependencies to be included in a bundle.
 
 
 ## Development
