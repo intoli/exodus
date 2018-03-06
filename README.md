@@ -393,8 +393,9 @@ There are several scenarios under which bundling an application with exodus will
 Many of these are things that we're working on and hope to improve in the future, but some are fundamentally by design and are unlikely to change.
 Here you can see an overview of situations where exodus will not be able to successfully relocate executables.
 
-- **Non-ELF Binaries** - Exodus currently only supports bundling ELF binaries.
-    This means that interpretted executable files, like shell scripts, cannot be bundled.
+- **Non-ELF Binaries** - Exodus currently only supports completely bundling ELF binaries.
+    Interpretted executable files, like shell scripts, can be included in bundles, but they're shebang interpreter directives will not be changed.
+    This generally means that they will be interpreted using the system version of `bash`, `python`, `perl`, or whatever else.
     The problem that exodus aims to solve is largely centered around the dynamic linking of ELF binaries, so this is unlikely to change in the foreseeable future.
 - **Incompatible CPU Architectures** - Binaries compiled for one CPU architecture will generally not be able to run on a CPU of another architecture.
     There are some exceptions to this, for example x64 processors are backwards compatible with x86 instruction sets, but you will not be able to migrate x64 binaries to an x86 or an ARM machine.
@@ -409,14 +410,6 @@ Here you can see an overview of situations where exodus will not be able to succ
     This means that any libraries which are compiled for specific hardware drivers will only work on machines with the same drivers.
     A key example of this is the `libGLX_indirect.so` library which can link to either `libGLX_mesa.so` or `libGLX_nvidia.so` depending on which graphics card drivers are used on a given system.
     Bundling dependencies that are not locally available on the source machine is fundamentally outside the scope of what exodus is designed to do, and this will never change.
-- **Programmatically Loaded Libraries** - Exodus works by using the linker to resolve dynamically linked library dependencies.
-    It is possible for programs to programmatically load libraries, by using calls to [dlopen](http://man7.org/linux/man-pages/man3/dlopen.3.html) for example.
-    These dependencies will not be resolved by the linker, and therefore will not be included in the bundles that exodus creates.
-    This is a difficult problem to overcome, but there are plans to improve exodus' handling of these libraries in the future.
-- **Non-Library Dependencies** - Many programs depend on files other than their dynamically linked libraries.
-    For example, `nmap` depends on a collection of `lua` scripts to run.
-    These files will not currently be included in exodus bundles.
-    It is very likely that support will be added for at least manually specifying these files as additional dependencies to be included in a bundle.
 
 
 ## Development
