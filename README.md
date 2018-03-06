@@ -130,7 +130,8 @@ An equivalent shell script will be used as a fallback, but it carries significan
 The command-line interface supports the following options.
 
 ```
-usage: exodus [-h] [-c CHROOT_PATH] [-o OUTPUT_FILE] [-q] [-r [NEW_NAME]] [-t]
+usage: exodus [-h] [-c CHROOT_PATH] [-a DEPENDENCY] [-d] [--no-symlink FILE]
+              [-o OUTPUT_FILE] [-q] [-r [NEW_NAME]] [--shell-launchers] [-t]
               [-v]
               EXECUTABLE [EXECUTABLE ...]
 
@@ -148,6 +149,21 @@ optional arguments:
                         linking. Useful for testing and bundling extracted
                         packages that won run without a chroot. (default:
                         None)
+  -a DEPENDENCY, --add DEPENDENCY, --additional-file DEPENDENCY
+                        Specifies an additional file to include in the bundle,
+                        useful for adding programatically loaded libraries and
+                        other non-library dependencies. The argument can be
+                        used more than once to include multiple files, and
+                        directories will be included recursively. (default:
+                        [])
+  -d, --detect          Attempt to autodetect direct dependencies using the
+                        system package manager. Operating system support is
+                        limited. (default: False)
+  --no-symlink FILE     Signifies that a file must not be symlinked to the
+                        deduplicated data directory. This is useful if a file
+                        looks for other resources based on paths relative its
+                        own location. This is enabled by default for
+                        executables. (default: [])
   -o OUTPUT_FILE, --output OUTPUT_FILE
                         The file where the bundle will be written out to. The
                         extension depends on the output type. The
@@ -161,6 +177,8 @@ optional arguments:
                         Renames the binary executable(s) before packaging. The
                         order of rename tags must match the order of
                         positional executable arguments. (default: [])
+  --shell-launchers     Force the use of shell launchers instead of attempting
+                        to compile statically linked ones. (default: False)
   -t, --tarball         Creates a tarball for manual extraction instead of an
                         installation script. Note that this will change the
                         output extension from ".sh" to ".tgz". (default:
