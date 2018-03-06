@@ -679,6 +679,8 @@ class Bundle(object):
                 Directories will be included recursively for non-entry point dependencies.
             entry_point (string, optional): The name of the bundle entry point for an executable.
                 If `True`, the executable's basename will be used.
+        Returns:
+            The `File` that was added, or `None` if it was a directory that was added recursively.
         """
         try:
             file = self.file_factory(path, entry_point=entry_point, chroot=self.chroot)
@@ -693,6 +695,8 @@ class Bundle(object):
         self.files.add(file)
         if file.elf:
             self.files |= file.elf.dependencies
+
+        return file
 
     def create_bundle(self, shell_launchers=False):
         """Creates the unpackaged bundle in `working_directory`.
