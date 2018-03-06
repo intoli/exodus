@@ -783,7 +783,7 @@ class Bundle(object):
 
         See the `File.__init__()` method for documentation of the arguments, they're identical.
         """
-        # Attempt to find an existing file with the same normalize path in `self.files`.
+        # Attempt to find an existing file with the same normalized path in `self.files`.
         path = resolve_file_path(path, search_environment_path=entry_point is not None)
         file = next((file for file in self.files if file.path == path), None)
         if file is not None:
