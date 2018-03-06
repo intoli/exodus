@@ -124,7 +124,7 @@ def create_unpackaged_bundle(executables, rename=[], chroot=None, add=[], no_sym
                         'is not tracked by your package manager, or your operating system '
                         'is not currently compatible with the `--detect` option. If not, please '
                         'create an issue at https://github.com/intoli/exodus and we\'ll try our '
-                        ' to add support for it in the future.'
+                        ' to add support for it in the future.',
                     )
 
                 for path in dependency_paths:
