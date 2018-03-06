@@ -15,6 +15,8 @@ from collections import defaultdict
 from subprocess import PIPE
 from subprocess import Popen
 
+from exodus_bundler.dependency_detection import detect_dependencies
+from exodus_bundler.errors import DependencyDetectionError
 from exodus_bundler.errors import InvalidElfBinaryError
 from exodus_bundler.errors import MissingFileError
 from exodus_bundler.errors import UnexpectedDirectoryError
@@ -38,7 +40,7 @@ def bytes_to_int(bytes, byteorder='big'):
 
 
 def create_bundle(executables, output, tarball=False, rename=[], chroot=None, add=[],
-                  no_symlink=[], shell_launchers=False):
+                  no_symlink=[], shell_launchers=False, detect=False):
     """Handles the creation of the full bundle."""
     # Initialize these ahead of time so they're always available for error handling.
     output_filename, output_file, root_directory = None, None, None
@@ -47,7 +49,7 @@ def create_bundle(executables, output, tarball=False, rename=[], chroot=None, ad
         # Create a temporary unpackaged bundle for the executables.
         root_directory = create_unpackaged_bundle(
             executables, rename=rename, chroot=chroot, add=add, no_symlink=no_symlink,
-            shell_launchers=shell_launchers,
+            shell_launchers=shell_launchers, detect=detect,
         )
 
         # Populate the filename template.
@@ -97,7 +99,7 @@ def create_bundle(executables, output, tarball=False, rename=[], chroot=None, ad
 
 
 def create_unpackaged_bundle(executables, rename=[], chroot=None, add=[], no_symlink=[],
-                             shell_launchers=False):
+                             shell_launchers=False, detect=False):
     """Creates a temporary directory containing the unpackaged contents of the bundle."""
     bundle = Bundle(chroot=chroot, working_directory=True)
     try:
@@ -110,7 +112,23 @@ def create_unpackaged_bundle(executables, rename=[], chroot=None, add=[], no_sym
 
         # Populate the bundle with main executable files and their dependencies.
         for (executable, entry_point) in zip(executables, entry_points):
-            bundle.add_file(executable, entry_point=entry_point)
+            file = bundle.add_file(executable, entry_point=entry_point)
+
+            # We'll only auto-detect dependencies for these entry points as well.
+            # If we did this later, it would practically bring in the whole system...
+            if detect:
+                dependency_paths = detect_dependencies(file.path)
+                if not dependency_paths:
+                    raise DependencyDetectionError(
+                        ('Automatic dependency detection failed. Either "%s" ' % file.path) +
+                        'is not tracked by your package manager, or your operating system '
+                        'is not currently compatible with the `--detect` option. If not, please '
+                        'create an issue at https://github.com/intoli/exodus and we\'ll try our '
+                        ' to add support for it in the future.',
+                    )
+
+                for path in dependency_paths:
+                    bundle.add_file(path)
 
         # Add "additional files" specified with the `--add` option.
         for filename in add:
@@ -679,6 +697,8 @@ class Bundle(object):
                 Directories will be included recursively for non-entry point dependencies.
             entry_point (string, optional): The name of the bundle entry point for an executable.
                 If `True`, the executable's basename will be used.
+        Returns:
+            The `File` that was added, or `None` if it was a directory that was added recursively.
         """
         try:
             file = self.file_factory(path, entry_point=entry_point, chroot=self.chroot)
@@ -693,6 +713,8 @@ class Bundle(object):
         self.files.add(file)
         if file.elf:
             self.files |= file.elf.dependencies
+
+        return file
 
     def create_bundle(self, shell_launchers=False):
         """Creates the unpackaged bundle in `working_directory`.
@@ -783,7 +805,7 @@ class Bundle(object):
 
         See the `File.__init__()` method for documentation of the arguments, they're identical.
         """
-        # Attempt to find an existing file with the same normalize path in `self.files`.
+        # Attempt to find an existing file with the same normalized path in `self.files`.
         path = resolve_file_path(path, search_environment_path=entry_point is not None)
         file = next((file for file in self.files if file.path == path), None)
         if file is not None:

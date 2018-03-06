@@ -140,6 +140,28 @@ def test_create_unpackaged_bundle(fizz_buzz, shell_launchers):
         shutil.rmtree(root_directory)
 
 
+@pytest.mark.parametrize('detect', [False, True])
+def test_create_unpackaged_bundle_detects_dependencies(detect):
+    binary_name = 'ls'
+    root_directory = create_unpackaged_bundle(
+        rename=[], executables=[binary_name], detect=detect)
+    try:
+        # Determine the bundle root.
+        binary_symlink = os.path.join(root_directory, 'bin', binary_name)
+        binary_path = os.path.realpath(binary_symlink)
+        dirname, basename = os.path.split(binary_path)
+        while len(basename) != 64:
+            dirname, basename = os.path.split(dirname)
+        bundle_root = os.path.join(dirname, basename)
+
+        man_directory = os.path.join(bundle_root, 'usr', 'share', 'man')
+        assert os.path.exists(man_directory) == detect, \
+            'The man directory should only exist when `detect=True`.'
+    finally:
+        assert root_directory.startswith('/tmp/')
+        shutil.rmtree(root_directory)
+
+
 def test_create_unpackaged_bundle_has_correct_args():
     root_directory = create_unpackaged_bundle(
         rename=[], executables=[echo_args_glibc_32], chroot=chroot)
