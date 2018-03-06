@@ -1,7 +1,7 @@
 import os
 import subprocess
 
-from exodus_bundler.bundling import resolve_binary
+from exodus_bundler.launchers import find_executable
 
 
 def detect_dependencies(path):
@@ -26,7 +26,7 @@ def detect_arch_dependencies(path):
     if not (os.path.exists(cache_directory) and os.path.isdir(cache_directory)):
         return None
 
-    pacman = resolve_binary('pacman')
+    pacman = find_executable('pacman')
     if not pacman:
         return None
 
@@ -56,7 +56,7 @@ def detect_debian_dependencies(path):
     if not (os.path.exists(cache_directory) and os.path.isdir(cache_directory)):
         return None
 
-    dpkg = resolve_binary('dpkg')
+    dpkg = find_executable('dpkg')
     if not dpkg:
         return None
 
@@ -67,7 +67,7 @@ def detect_debian_dependencies(path):
         return None
 
     package_name = parts[0]
-    dpkg_query = resolve_binary('dpkg-query')
+    dpkg_query = find_executable('dpkg-query')
     if not dpkg_query:
         return None
 
@@ -87,7 +87,7 @@ def detect_redhat_dependencies(path):
     if not (os.path.exists(cache_directory) and os.path.isdir(cache_directory)):
         return None
 
-    rpm = resolve_binary('rpm')
+    rpm = find_executable('rpm')
     if not rpm:
         return None
 
