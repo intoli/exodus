@@ -93,7 +93,7 @@ def detect_redhat_dependencies(path):
 
     process = subprocess.Popen([rpm, '-qf', path], stdout=subprocess.PIPE)
     stdout, stderr = process.communicate()
-    package_name = stdout.decode('utf-8').split(': ')
+    package_name = stdout.decode('utf-8').strip()
 
     process = subprocess.Popen([rpm, '-ql', package_name], stdout=subprocess.PIPE)
     stdout, stderr = process.communicate()
