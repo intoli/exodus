@@ -206,6 +206,53 @@ If you use `csh`, then you need to additionally run `bash` on the remote server 
 exodus aria2c | ssh intoli.com bash
 ```
 
+#### Explicitly Adding Extra Files
+
+Additional files can be added to bundles in a number of different ways.
+If there is a specific file or directory that you would like to include, then you can use the `--add` option.
+For example, the following command will bundle `nmap` and include the contents of `/usr/share/nmap` in the bundle.
+
+```bash
+exodus --add /usr/share/nmap nmap
+```
+
+You can also pipe a list of dependencies into `exodus`.
+This allows you to use standard Linux utilities to find and filter dependencies as you see fit.
+The following command sequence uses `find` to include all of the Lua scripts under `/usr/share/nmap`.
+
+```bash
+find /usr/share/nmap/ -iname '*.lua' | exodus nmap
+```
+
+These two approaches can be used together, and the `--add` flag can also be used multiple times in one command.
+
+
+#### Auto-Detecting Extra Files
+
+If you're not sure which extra dependencies are necessary, you can use the `--detect` option to query your system's package manager and automatically include any files in the corresponding packages.
+Running
+
+```bash
+exodus --detect nmap
+```
+
+will include the contents of `/usr/share/nmap` as well as its man pages and the contents of `/usr/share/zenmap/`.
+If you ever try to relocate a binary that doesn't work with the default configuration, the `--detect` option is a good first thing to try.
+
+You can also pipe the output of `strace` into `exodus` and all of the files that are accessed will be automatically included.
+This is particularly useful in situations where shared libraries are loaded programmatically, but it can also be used to determine which files are necessary to run a specific command.
+The following command will determine all of the files that `nmap` accesses while running the set of default scripts.
+
+```bash
+strace -f nmap --script default 127.0.0.1 2>&1 | exodus nmap --tar
+```
+
+The output of `strace` is then parsed by `exodus` and all of the files are included.
+It's generally more robust to use `--detect` to find the non-library dependencies, but the `strace` pattern can be indispensable when a program uses `dlopen()` to load libraries programmatically.
+Also, note that *any* files that a program accesses will be included in a bundle when following this approach.
+Never distribute a bundle without being certain that you haven't accidentally included a file that you don't want to make public.
+
+
 #### Renaming Binaries
 
 Multiple binaries that have the same name can be installed in parallel through the use of the `--rename`/`-r` option.
