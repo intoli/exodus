@@ -85,6 +85,14 @@ class Pacman(PackageManager):
     owner_regex = ' is owned by (.*)\s+.*'
 
 
+class Yum(PackageManager):
+    cache_directory = '/var/cache/yum'
+    list_command = ['rpm', '-ql']
+    list_regex = '(.+)'
+    owner_command = ['rpm', '-qf']
+    owner_regex = '(.+)'
+
+
 def detect_dependencies(path):
     # We'll go through the supported systems one by one.
     dependencies = detect_arch_dependencies(path)
@@ -113,23 +121,5 @@ def detect_debian_dependencies(path):
 
 
 def detect_redhat_dependencies(path):
-    cache_directory = '/var/cache/yum'
-    if not (os.path.exists(cache_directory) and os.path.isdir(cache_directory)):
-        return None
-
-    rpm = find_executable('rpm')
-    if not rpm:
-        return None
-
-    process = subprocess.Popen([rpm, '-qf', path], stdout=subprocess.PIPE)
-    stdout, stderr = process.communicate()
-    package_name = stdout.decode('utf-8').strip()
-
-    process = subprocess.Popen([rpm, '-ql', package_name], stdout=subprocess.PIPE)
-    stdout, stderr = process.communicate()
-    dependencies = []
-    for dependency_path in stdout.decode('utf-8').split('\n'):
-        if os.path.exists(dependency_path) and not os.path.isdir(dependency_path):
-            dependencies.append(dependency_path)
-
-    return dependencies
+    yum = Yum()
+    return yum.find_dependencies(path)
