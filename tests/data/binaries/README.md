@@ -41,4 +41,7 @@ Components of the [MUSL C Library](https://www.musl-libc.org/) are similarly inc
 These are licensed under [a standard MIT license](https://git.musl-libc.org/cgit/musl/tree/COPYRIGHT).
 This copyright notice is reproduced here in [MUSL-COPYRIGHT](MUSL-COPYRIGHT).
 
+Any third-party dependencies that are included here were taken from the [Arch Linux Package Repositories](https://www.archlinux.org/packages/) without modification.
+They provide the source code for these packages for GPL compliance, and their offer is passed along here for any GPLed binaries in this test directory.
+
 If you're involved with one of these projects and feel that there's an issue with the licensing or attribution here, please open an issue on the repository and we'll make whatever changes are necessary.
