@@ -93,33 +93,18 @@ class Yum(PackageManager):
     owner_regex = '(.+)'
 
 
+package_managers = [
+    Apt(),
+    Pacman(),
+    Yum(),
+]
+
+
 def detect_dependencies(path):
     # We'll go through the supported systems one by one.
-    dependencies = detect_arch_dependencies(path)
-    if dependencies:
-        return dependencies
-
-    dependencies = detect_debian_dependencies(path)
-    if dependencies:
-        return dependencies
-
-    dependencies = detect_redhat_dependencies(path)
-    if dependencies:
-        return dependencies
+    for package_manager in package_managers:
+        dependencies = package_manager.find_dependencies(path)
+        if dependencies:
+            return dependencies
 
     return None
-
-
-def detect_arch_dependencies(path):
-    pacman = Pacman()
-    return pacman.find_dependencies(path)
-
-
-def detect_debian_dependencies(path):
-    apt = Apt()
-    return apt.find_dependencies(path)
-
-
-def detect_redhat_dependencies(path):
-    yum = Yum()
-    return yum.find_dependencies(path)
