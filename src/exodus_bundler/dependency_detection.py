@@ -69,6 +69,14 @@ class PackageManager(object):
         return all(find_executable(command) is not None for command in commands)
 
 
+class Apt(PackageManager):
+    cache_directory = '/var/cache/apt'
+    list_command = ['dpkg-query', '-L']
+    list_regex = '(.+)'
+    owner_command = ['dpkg', '-S']
+    owner_regex = '(.+): '
+
+
 class Pacman(PackageManager):
     cache_directory = '/var/cache/pacman'
     list_command = ['pacman', '-Ql']
@@ -100,34 +108,8 @@ def detect_arch_dependencies(path):
 
 
 def detect_debian_dependencies(path):
-    cache_directory = '/var/cache/apt'
-    if not (os.path.exists(cache_directory) and os.path.isdir(cache_directory)):
-        return None
-
-    dpkg = find_executable('dpkg')
-    if not dpkg:
-        return None
-
-    process = subprocess.Popen([dpkg, '-S', path], stdout=subprocess.PIPE)
-    stdout, stderr = process.communicate()
-    parts = stdout.decode('utf-8').split(': ')
-    if len(parts) != 2:
-        return None
-
-    package_name = parts[0]
-    dpkg_query = find_executable('dpkg-query')
-    if not dpkg_query:
-        return None
-
-    package_name = parts[0]
-    process = subprocess.Popen([dpkg_query, '-L', package_name], stdout=subprocess.PIPE)
-    stdout, stderr = process.communicate()
-    dependencies = []
-    for dependency_path in stdout.decode('utf-8').split('\n'):
-        if os.path.exists(dependency_path) and not os.path.isdir(dependency_path):
-            dependencies.append(dependency_path)
-
-    return dependencies
+    apt = Apt()
+    return apt.find_dependencies(path)
 
 
 def detect_redhat_dependencies(path):
