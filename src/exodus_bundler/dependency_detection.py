@@ -4,6 +4,29 @@ import subprocess
 from exodus_bundler.launchers import find_executable
 
 
+class PackageManager(object):
+    """Base class representing a package manager.
+
+    The class level attributes can be overwritten in derived classes to customize the behavior.
+
+    Attributes:
+        cache_directory (str): The location of the system's package cache.
+        name (str): The name of the package manager executable.
+    """
+    cache_directory = None
+    name = None
+
+    @property
+    def cache_exists(self):
+        """Whether or not the expected package cache directory exists."""
+        return os.path.exists(self.cache_directory) and os.path.isdir(self.cache_directory)
+
+    @property
+    def executable(self):
+        """The full path to the package manager's executable entry point."""
+        return find_executable(self.name)
+
+
 def detect_dependencies(path):
     # We'll go through the supported systems one by one.
     dependencies = detect_arch_dependencies(path)
