@@ -244,7 +244,7 @@ This is particularly useful in situations where shared libraries are loaded prog
 The following command will determine all of the files that `nmap` accesses while running the set of default scripts.
 
 ```bash
-strace -f nmap --script default 127.0.0.1 2>&1 | exodus nmap --tar
+strace -f nmap --script default 127.0.0.1 2>&1 | exodus nmap
 ```
 
 The output of `strace` is then parsed by `exodus` and all of the files are included.
