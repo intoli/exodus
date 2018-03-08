@@ -20,6 +20,7 @@ from exodus_bundler.errors import DependencyDetectionError
 from exodus_bundler.errors import InvalidElfBinaryError
 from exodus_bundler.errors import MissingFileError
 from exodus_bundler.errors import UnexpectedDirectoryError
+from exodus_bundler.errors import UnsupportedArchitectureError
 from exodus_bundler.launchers import CompilerNotFoundError
 from exodus_bundler.launchers import construct_bash_launcher
 from exodus_bundler.launchers import construct_binary_launcher
@@ -267,7 +268,14 @@ class Elf(object):
 
             # Determine whether this is a 32-bit or 64-bit file.
             format_byte = f.read(1)
-            self.bits = {b'\x01': 32, b'\x02': 64}[format_byte]
+            self.bits = {b'\x01': 32, b'\x02': 64}.get(format_byte)
+            if not self.bits:
+                raise UnsupportedArchitectureError(
+                    ('The "%s" file does not appear to be either 32 or 64 bits. ' % path) +
+                    'Other architectures are not currently supported, but you can open an '
+                    'issue at https://github.com/intoli/exodus stating your use-case and '
+                    'support might get extended in the future.',
+                )
 
             # Determine whether it's big or little endian and construct an integer parsing function.
             endian_byte = f.read(1)
