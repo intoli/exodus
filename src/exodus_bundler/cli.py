@@ -5,6 +5,7 @@ import sys
 from exodus_bundler import root_logger
 from exodus_bundler.bundling import create_bundle
 from exodus_bundler.errors import FatalError
+from exodus_bundler.input_parsing import extract_paths
 
 
 logger = logging.getLogger(__name__)
@@ -25,11 +26,37 @@ def parse_args(args=None, namespace=None):
         'One or more ELF executables to include in the exodus bundle.'
     ))
 
-    parser.add_argument('--ldd', metavar='LDD_SCRIPT', default='ldd', help=(
-        'The linker that will be invoked to resolve dependencies. In advanced usage, '
-        'you may want to write your own `ldd` script which invokes the linker with '
-        'custom arguments.'
+    parser.add_argument('-c', '--chroot', metavar='CHROOT_PATH',
+        default=None,
+        help=(
+            'A directory that will be treated as the root during linking. Useful for testing and '
+            'bundling extracted packages that won\t run without a chroot.'
+        ),
+    )
+
+    parser.add_argument('-a', '--add', '--additional-file', metavar='DEPENDENCY', action='append',
+        default=[],
+        help=(
+            'Specifies an additional file to include in the bundle, useful for adding '
+            'programatically loaded libraries and other non-library dependencies. '
+            'The argument can be used more than once to include multiple files, and '
+            'directories will be included recursively.'
+        ),
+    )
+
+    parser.add_argument('-d', '--detect', action='store_true', help=(
+        'Attempt to autodetect direct dependencies using the system package manager. '
+        'Operating system support is limited.'
     ))
+
+    parser.add_argument('--no-symlink', metavar='FILE', action='append',
+        default=[],
+        help=(
+            'Signifies that a file must not be symlinked to the deduplicated data directory. This '
+            'is useful if a file looks for other resources based on paths relative its own '
+            'location. This is enabled by default for executables.'
+        ),
+    )
 
     parser.add_argument('-o', '--output', metavar='OUTPUT_FILE',
         default=None,
@@ -51,6 +78,10 @@ def parse_args(args=None, namespace=None):
             'match the order of positional executable arguments.'
         ),
     )
+
+    parser.add_argument('--shell-launchers', action='store_true', help=(
+        'Force the use of shell launchers instead of attempting to compile statically linked ones.'
+    ))
 
     parser.add_argument('-t', '--tarball', action='store_true', help=(
         'Creates a tarball for manual extraction instead of an installation script. '
@@ -112,6 +143,10 @@ def main(args=None, namespace=None):
     quiet, verbose = args.pop('quiet'), args.pop('verbose')
     suppress_stdout = args['output'] == '-'
     configure_logging(quiet=quiet, verbose=verbose, suppress_stdout=suppress_stdout)
+
+    # Allow piping in additional files.
+    if not sys.stdin.isatty():
+        args['add'] += extract_paths(sys.stdin.read())
 
     # Create the bundle with all of the arguments.
     try:

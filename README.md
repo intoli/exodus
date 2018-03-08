@@ -130,7 +130,8 @@ An equivalent shell script will be used as a fallback, but it carries significan
 The command-line interface supports the following options.
 
 ```
-usage: exodus [-h] [--ldd LDD_SCRIPT] [-o OUTPUT_FILE] [-q] [-r NEW_NAME] [-t]
+usage: exodus [-h] [-c CHROOT_PATH] [-a DEPENDENCY] [-d] [--no-symlink FILE]
+              [-o OUTPUT_FILE] [-q] [-r [NEW_NAME]] [--shell-launchers] [-t]
               [-v]
               EXECUTABLE [EXECUTABLE ...]
 
@@ -143,10 +144,26 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  --ldd LDD_SCRIPT      The linker that will be invoked to resolve
-                        dependencies. In advanced usage, you may want to write
-                        your own `ldd` script which invokes the linker with
-                        custom arguments. (default: ldd)
+  -c CHROOT_PATH, --chroot CHROOT_PATH
+                        A directory that will be treated as the root during
+                        linking. Useful for testing and bundling extracted
+                        packages that won run without a chroot. (default:
+                        None)
+  -a DEPENDENCY, --add DEPENDENCY, --additional-file DEPENDENCY
+                        Specifies an additional file to include in the bundle,
+                        useful for adding programatically loaded libraries and
+                        other non-library dependencies. The argument can be
+                        used more than once to include multiple files, and
+                        directories will be included recursively. (default:
+                        [])
+  -d, --detect          Attempt to autodetect direct dependencies using the
+                        system package manager. Operating system support is
+                        limited. (default: False)
+  --no-symlink FILE     Signifies that a file must not be symlinked to the
+                        deduplicated data directory. This is useful if a file
+                        looks for other resources based on paths relative its
+                        own location. This is enabled by default for
+                        executables. (default: [])
   -o OUTPUT_FILE, --output OUTPUT_FILE
                         The file where the bundle will be written out to. The
                         extension depends on the output type. The
@@ -156,10 +173,12 @@ optional arguments:
                         "./exodus-{{executables}}-bundle.{{extension}}"
                         otherwise. (default: None)
   -q, --quiet           Suppress warning messages. (default: False)
-  -r NEW_NAME, --rename NEW_NAME
+  -r [NEW_NAME], --rename [NEW_NAME]
                         Renames the binary executable(s) before packaging. The
                         order of rename tags must match the order of
                         positional executable arguments. (default: [])
+  --shell-launchers     Force the use of shell launchers instead of attempting
+                        to compile statically linked ones. (default: False)
   -t, --tarball         Creates a tarball for manual extraction instead of an
                         installation script. Note that this will change the
                         output extension from ".sh" to ".tgz". (default:
@@ -186,6 +205,53 @@ If you use `csh`, then you need to additionally run `bash` on the remote server 
 ```bash
 exodus aria2c | ssh intoli.com bash
 ```
+
+#### Explicitly Adding Extra Files
+
+Additional files can be added to bundles in a number of different ways.
+If there is a specific file or directory that you would like to include, then you can use the `--add` option.
+For example, the following command will bundle `nmap` and include the contents of `/usr/share/nmap` in the bundle.
+
+```bash
+exodus --add /usr/share/nmap nmap
+```
+
+You can also pipe a list of dependencies into `exodus`.
+This allows you to use standard Linux utilities to find and filter dependencies as you see fit.
+The following command sequence uses `find` to include all of the Lua scripts under `/usr/share/nmap`.
+
+```bash
+find /usr/share/nmap/ -iname '*.lua' | exodus nmap
+```
+
+These two approaches can be used together, and the `--add` flag can also be used multiple times in one command.
+
+
+#### Auto-Detecting Extra Files
+
+If you're not sure which extra dependencies are necessary, you can use the `--detect` option to query your system's package manager and automatically include any files in the corresponding packages.
+Running
+
+```bash
+exodus --detect nmap
+```
+
+will include the contents of `/usr/share/nmap` as well as its man pages and the contents of `/usr/share/zenmap/`.
+If you ever try to relocate a binary that doesn't work with the default configuration, the `--detect` option is a good first thing to try.
+
+You can also pipe the output of `strace` into `exodus` and all of the files that are accessed will be automatically included.
+This is particularly useful in situations where shared libraries are loaded programmatically, but it can also be used to determine which files are necessary to run a specific command.
+The following command will determine all of the files that `nmap` accesses while running the set of default scripts.
+
+```bash
+strace -f nmap --script default 127.0.0.1 2>&1 | exodus nmap
+```
+
+The output of `strace` is then parsed by `exodus` and all of the files are included.
+It's generally more robust to use `--detect` to find the non-library dependencies, but the `strace` pattern can be indispensable when a program uses `dlopen()` to load libraries programmatically.
+Also, note that *any* files that a program accesses will be included in a bundle when following this approach.
+Never distribute a bundle without being certain that you haven't accidentally included a file that you don't want to make public.
+
 
 #### Renaming Binaries
 
@@ -276,7 +342,7 @@ ADD exodus-jq-bundle.tgz /opt/
 to an existing `Dockerfile` will make the `jq` binary available for use inside the container.
 
 
-## How it Works
+## How It Works
 
 There are two main components to how exodus works:
 
@@ -312,7 +378,7 @@ We can iteratively find all of the necessary dependencies by following the same 
 This isn't actually necessary for `grep`, but exodus does handle finding the full set of dependencies for you.
 
 After all of the dependencies are found, exodus puts them together with the binary in a tarball that can be extracted (typically into either `/opt/exodus/` or `~/.exodus`).
-We can explore the structure of the grep bundle by using [tree](https://linux.die.net/man/1/tree) combined with a `sed` one-liner to truncate long SHA-256 hashes to 8 digits.
+We can explore the structure of the `grep` bundle by using [tree](https://linux.die.net/man/1/tree) combined with a `sed` one-liner to truncate long SHA-256 hashes to 8 digits.
 Running
 
 ```bash
@@ -325,41 +391,53 @@ will show us all of the files and folders included in the `grep` bundle.
 ```
 /home/sangaline/.exodus/
 ├── bin
-│   └── grep -> ../bundles/7477c1a7.../bin/grep-launcher.sh
+│   └── grep -> ../bundles/3124cd96.../usr/bin/grep
 ├── bundles
-│   └── 7477c1a7...
-│       ├── bin
-│       │   ├── grep
-│       │   └── grep-launcher.sh
-│       └── lib
-│           ├── ld-linux-x86-64.so.2 -> ../../../lib/68dd9b50...
-│           ├── libc.so.6 -> ../../../lib/91a11344...
-│           ├── libpcre.so.1 -> ../../../lib/a0862ebc...
-│           └── libpthread.so.0 -> ../../../lib/55dbf3e8...
-└── lib
-    ├── 55dbf3e8...
-    ├── 68dd9b50...
-    ├── 91a11344...
-    └── a0862ebc...
+│   └── 3124cd96...
+│       ├── lib64
+│       │   └── ld-linux-x86-64.so.2 -> ../../../data/dfd5de26...
+│       └── usr
+│           ├── bin
+│           │   ├── grep
+│           │   ├── grep-x -> ../../../../data/7477c1a7...
+│           │   └── linker-dfd5de26...
+│           └── lib
+│               ├── libc.so.6 -> ../../../../data/6d0e1d45...
+│               ├── libpcre.so.1 -> ../../../../data/a0862ebc...
+│               └── libpthread.so.0 -> ../../../../data/85cb56a5...
+└── data
+    ├── 6d0e1d45...
+    ├── 7477c1a7...
+    ├── 85cb56a5...
+    ├── a0862ebc...
+    └── dfd5de26...
 
-6 directories, 11 files
+8 directories, 13 files
 ```
 
-You can see that there are three top-level directories within `~/.exodus/`: `bin`, `bundles`, and `lib`.
-Let's cover these in reverse-alphabetical order, starting with the `lib` directory.
+You can see that there are three top-level directories within `~/.exodus/`: `bin`, `bundles`, and `data`.
+Let's cover these in reverse-alphabetical order, starting with the `data` directory.
 
-The `lib` directory contains library files whose names correspond to SHA-256 hashes of the libraries that they represent.
-This is done so that multiple versions of a library with the same filename can be extracted in the `lib` directory without overwriting each other.
-This also means that identical files with different names won't result in multiple copies of the same data.
+The `data` directory contains the actual files from the bundles with names corresponding to SHA-256 hashes of their content.
+This is done so that multiple versions of a file with the same filename can be extracted in the `data` directory without overwriting each other.
+On the other hand, files that do have the same content *will* overwrite each other.
+This avoids the need to store multiple copies of the same data, even if the identical files appear in different bundles or directories.
 
-Next, we have the `bundles` directory, which is full of subfolders with SHA-256 hashes as names.
-The hashes this time correspond to the contents of the binary that is being bundled.
-The purpose of this is that multiple versions of the same binary can be bundled and extracted without the directory contents mixing.
+Next, we have the `bundles` directory, which is full of subfolders that also have SHA-256 hashes as names.
+The hashes this time are determined based on the combined directory structure and content of everything included in the bundle.
+The hash provides a unique fingerprint for the bundle and allows multiple bundles to be extracted without their directory contents mixing.
 
-Inside of each bundle subdirectory, there are two additional subdirectories: `bin` and `lib`.
-The `lib` subdirectory simply consists of symlinks to the actual library files in the top-level `lib/` directory.
-The `bin` subdirectory consists of the original binary file and a second executable called a "launcher."
-Each launcher is a tiny program that invokes the linker and overrides the library search path in such a way that our original binary can run without any system libraries being used and causing issues due to incompatibilities.
+Inside of each bundle subdirectory, the original directory structure of the bundle's contents on the host machine is mirrored.
+For this particular `grep` bundle, there are `lib64`, `usr/bin`, and `usr/lib` directories.
+A more complicated bundle could include additional files from `/usr/share`, `/opt/local`, a user's home directory, or really anywhere on the system (see the `--add` and `--detect` options).
+The files in both `lib64` and `usr/lib` simply consist of symlinks to the actual library files in the top-level `data/` directory.
+The `usr/bin` directory is a little more complicated.
+
+The `grep` file isn't actually the original `grep` binary, it's a special executable that `exodus` constructs called a "launcher."
+A launcher is a tiny program that invokes the linker and overrides the library search path in such a way that our original binary can run without any system libraries being used and causing issues due to incompatibilities.
+The linker in this case is the `linker-dfd5de26...` file.
+This is located in the same directory so that resource paths can be resolved relative to the running executable.
+Finally, the `grep-x` symlink points to the actual `grep` binary that was bundled and extracted in the top-level `data/` directory (this is the ELF file that the linker interprets).
 
 When a C compiler and either [musl libc](https://www.musl-libc.org/) or [diet libc](https://www.fefe.de/dietlibc/) are available, exodus will compile a statically linked binary launcher.
 If neither of these are present, it will fall back to using a shell script to perform the task of the launcher.
@@ -370,20 +448,22 @@ Here's the shell script version of the `grep-launcher`, for example.
 #! /bin/bash
 
 current_directory="$(dirname "$(readlink -f "$0")")"
-lib_directory="${current_directory}/../lib/"
-linker="${lib_directory}/ld-linux-x86-64.so.2"
-executable="${current_directory}/grep"
-exec "${linker}" --library-path "${lib_directory}" --inhibit-rpath "" "${executable}" "$@"
+executable="${current_directory}/./grep-x"
+library_path="../../lib64:../lib64:../../lib:../lib:../../lib32:../lib32"
+library_path="${current_directory}/${library_path//:/:${current_directory}/}"
+linker="${current_directory}/./linker-dfd5de2638cea087685b67786050dcdc33aac7b67f5f8c2753b7da538517880a"
+exec "${linker}" --library-path "${library_path}" --inhibit-rpath "" "${executable}" "$@"
 ```
 
-You can see that the launcher first constructs the full paths for the `lib` directory, the executable, and the linker based on its own location.
-It then executes the linker with a set of arguments that allow it to search the proper `lib` directory, ignore the hardcoded `RPATH`, and run the binary with any arguments to the launcher passed along.
+You can see that the launcher first constructs the full paths for all of the `LD_LIBRARY_PATH` directories, the executable, and the linker based on its own location.
+It then executes the linker with a set of arguments that allow it to search the proper library directories, ignore the hardcoded `RPATH`, and run the binary with any command-line arguments passed along.
 This serves a similar purpose to something like [patchelf](https://github.com/NixOS/patchelf) that would modify the `INTERP` and `RPATH` of the binary, but it additionally allows for both the linker and library locations to be specified based *solely on their relative locations*.
 This is what allows for the exodus bundles to be extracted in `~/.exodus`, `/opt/exodus/`, or any other location, as long as the internal bundle structure is preserved.
 
 Continuing on with our reverse-alphabetical order, we finally get to the top-level `bin` directory.
 The top-level `bin` directory consists of symlinks of the binary names to their corresponding launchers.
 This allows for the addition of a single directory to a user's `PATH` variable in order to make the migrated exodus binaries accessible.
+For example, adding `export PATH="~/.exodus/bin:${PATH}"` to a `~/.bashrc` file will add all of these entry points to a user's `PATH` and allow them to be run without specifying their full path.
 
 
 ## Known Limitations
@@ -392,8 +472,9 @@ There are several scenarios under which bundling an application with exodus will
 Many of these are things that we're working on and hope to improve in the future, but some are fundamentally by design and are unlikely to change.
 Here you can see an overview of situations where exodus will not be able to successfully relocate executables.
 
-- **Non-ELF Binaries** - Exodus currently only supports bundling ELF binaries.
-    This means that interpretted executable files, like shell scripts, cannot be bundled.
+- **Non-ELF Binaries** - Exodus currently only supports completely bundling ELF binaries.
+    Interpreted executable files, like shell scripts, can be included in bundles, but they're shebang interpreter directives will not be changed.
+    This generally means that they will be interpreted using the system version of `bash`, `python`, `perl`, or whatever else.
     The problem that exodus aims to solve is largely centered around the dynamic linking of ELF binaries, so this is unlikely to change in the foreseeable future.
 - **Incompatible CPU Architectures** - Binaries compiled for one CPU architecture will generally not be able to run on a CPU of another architecture.
     There are some exceptions to this, for example x64 processors are backwards compatible with x86 instruction sets, but you will not be able to migrate x64 binaries to an x86 or an ARM machine.
@@ -408,14 +489,6 @@ Here you can see an overview of situations where exodus will not be able to succ
     This means that any libraries which are compiled for specific hardware drivers will only work on machines with the same drivers.
     A key example of this is the `libGLX_indirect.so` library which can link to either `libGLX_mesa.so` or `libGLX_nvidia.so` depending on which graphics card drivers are used on a given system.
     Bundling dependencies that are not locally available on the source machine is fundamentally outside the scope of what exodus is designed to do, and this will never change.
-- **Programmatically Loaded Libraries** - Exodus works by using the linker to resolve dynamically linked library dependencies.
-    It is possible for programs to programmatically load libraries, by using calls to [dlopen](http://man7.org/linux/man-pages/man3/dlopen.3.html) for example.
-    These dependencies will not be resolved by the linker, and therefore will not be included in the bundles that exodus creates.
-    This is a difficult problem to overcome, but there are plans to improve exodus' handling of these libraries in the future.
-- **Non-Library Dependencies** - Many programs depend on files other than their dynamically linked libraries.
-    For example, `nmap` depends on a collection of `lua` scripts to run.
-    These files will not currently be included in exodus bundles.
-    It is very likely that support will be added for at least manually specifying these files as additional dependencies to be included in a bundle.
 
 
 ## Development

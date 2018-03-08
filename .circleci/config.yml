@@ -22,7 +22,7 @@ jobs:
             python3 -m venv .env
             . .env/bin/activate
             pip install -r development-requirements.txt
-
+            sudo apt-get install dietlibc-dev gcc musl musl-tools
       - save_cache:
           paths:
             - ./.env
@@ -40,9 +40,75 @@ jobs:
           command: |
             python setup.py sdist bdist_wheel
 
+      - run:
+          name: Build Self-Hosted Bundle
+          command: |
+            sudo apt-get install python-pip strace
+            sudo pip2 install .
+
+            (cat <<EOF > ./exodus.c
+            #include <libgen.h>
+            #include <stdlib.h>
+            #include <string.h>
+            #include <unistd.h>
+
+            int main(int argc, char *argv[]) {
+                char buffer[4096] = { 0 };
+                if (readlink("/proc/self/exe", buffer, sizeof(buffer) - 25)) {
+                    char *current_directory = dirname(buffer);
+                    int current_directory_length = strlen(current_directory);
+
+                    char python[4096] = { 0 };
+                    strcpy(python, current_directory);
+                    strcat(python, "/usr/bin/python");
+
+                    char exodus[4096] = { 0 };
+                    strcpy(exodus, current_directory);
+                    strcat(exodus, "/usr/local/bin/exodus");
+
+                    char **combined_args = malloc(sizeof(char*) * (argc + 2));
+                    combined_args[0] = python;
+                    combined_args[1] = exodus;
+                    memcpy(combined_args + 2, argv + 1, sizeof(char*) * (argc - 1));
+                    combined_args[argc + 1] = NULL;
+
+                    char *envp[2];
+                    char pythonpath[4096] = { 0 };
+                    strcpy(pythonpath, "PYTHONPATH=");
+                    strcat(pythonpath, current_directory);
+                    strcat(pythonpath, "/usr/local/lib/python2.7/");
+                    envp[0] = pythonpath;
+
+                    envp[1] = NULL;
+
+                    execve(python, combined_args, envp);
+                }
+
+                return 1;
+            }
+            EOF
+            )
+            sudo cp exodus.c /
+            cd /
+            sudo musl-gcc -static -O3 exodus.c -o exodus
+            sudo chmod a+x /exodus
+
+            sudo mv /etc/ld.so.cache /tmp/ld.so.cache.bck
+
+            export LD_LIBRARY_PATH=/usr/local/lib/:/lib/x86_64-linux-gnu/:/usr/lib/x86_64-linux-gnu/:${LD_LIBRARY_PATH}
+            strace -f /usr/bin/python /usr/local/bin/exodus --shell-launchers -q /usr/bin/python -o /dev/null 2>&1 | exodus ./exodus --add /usr/local/lib/python2.7/dist-packages/exodus_bundler/ --no-symlink /usr/local/lib/python2.7/dist-packages/exodus_bundler/templating.py --no-symlink /usr/local/lib/python2.7/dist-packages/exodus_bundler/launchers.py --tar --output /home/circleci/exodus/exodus-x64.tgz
+            strace -f /usr/bin/python /usr/local/bin/exodus --shell-launchers -q /usr/bin/python -o /dev/null 2>&1 | exodus ./exodus --add /usr/local/lib/python2.7/dist-packages/exodus_bundler/ --no-symlink /usr/local/lib/python2.7/dist-packages/exodus_bundler/templating.py --no-symlink /usr/local/lib/python2.7/dist-packages/exodus_bundler/launchers.py > /home/circleci/exodus/exodus-x64.sh
+
+            sudo mv /tmp/ld.so.cache.bck /etc/ld.so.cache
       - store_artifacts:
           path: htmlcov
           destination: coverage-report
+      - store_artifacts:
+          path: exodus-x64.sh
+          destination: exodus-x64.sh
+      - store_artifacts:
+          path: exodus-x64.tgz
+          destination: exodus-x64.tgz
 
       - persist_to_workspace:
           root: ~/exodus
