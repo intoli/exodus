@@ -21,3 +21,8 @@ class MissingFileError(FatalError):
 class UnexpectedDirectoryError(FatalError):
     """Signifies that a path was unexpectedly a directory."""
     pass
+
+
+class UnsupportedArchitectureError(FatalError):
+    """Signifies that a binary has an unexpected architecture."""
+    pass
