@@ -281,6 +281,13 @@ class Elf(object):
             endian_byte = f.read(1)
             byteorder = {b'\x01': 'little', b'\x02': 'big'}[endian_byte]
             assert byteorder == 'little', 'Big endian is not supported right now.'
+            if not byteorder:
+                raise UnsupportedArchitectureError(
+                    ('The "%s" file does not appear to be little endian, ' % path) +
+                    'and big endian binaries are not currently supported. You can open an '
+                    'issue at https://github.com/intoli/exodus stating your use-case and '
+                    'support might get extended in the future.',
+                )
 
             def hex(bytes):
                 return bytes_to_int(bytes, byteorder=byteorder)
