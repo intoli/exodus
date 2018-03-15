@@ -368,7 +368,7 @@ class Elf(object):
         environment.update(os.environ)
         environment['LD_TRACE_LOADED_OBJECTS'] = '1'
         if self.chroot:
-            ld_library_path = '/lib64:/usr/lib64:/lib/:/usr/lib:/lib32/:/usr/lib32/:'
+            ld_library_path = '/lib64:/usr/lib64:/lib/:/usr/lib:/lib32/:/usr/lib32/:/usr/lib/x86_64-linux-gnu/:/lib/x86_64-linux-gnu/:'
             ld_library_path += environment.get('LD_LIBRARY_PATH', '')
             directories = []
             for directory in ld_library_path.split(':'):
@@ -551,7 +551,7 @@ class File(object):
 
         # Construct the library path
         original_file_parent = os.path.dirname(self.path)
-        ld_library_path = '/lib64:/usr/lib64:/lib/:/usr/lib:/lib32/:/usr/lib32/:'
+        ld_library_path = '/lib64:/usr/lib64:/lib/:/usr/lib:/lib32/:/usr/lib32/:/usr/lib/x86_64-linux-gnu/:/lib/x86_64-linux-gnu/:'
         ld_library_path += os.environ.get('LD_LIBRARY_PATH', '')
         relative_library_paths = []
         for directory in ld_library_path.split(':'):
