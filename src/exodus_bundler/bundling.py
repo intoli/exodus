@@ -696,6 +696,11 @@ class Bundle(object):
         self.working_directory = working_directory
         if working_directory is True:
             self.working_directory = tempfile.mkdtemp(prefix='exodus-bundle-')
+            # The permissions on the `mkdtemp()` directory will be extremely restricted by default,
+            # so we'll modify them to to reflect the current umask.
+            umask = os.umask(0)
+            os.umask(umask)
+            os.chmod(self.working_directory, 0o777 & ~umask)
         self.chroot = chroot
         self.files = set()
 
