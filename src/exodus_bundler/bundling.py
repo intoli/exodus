@@ -554,10 +554,12 @@ class File(object):
 
         # Construct the library path
         original_file_parent = os.path.dirname(self.path)
-        ld_library_path = '/lib64:/usr/lib64:/lib/:/usr/lib:/lib32/:/usr/lib32/:'
-        ld_library_path += os.environ.get('LD_LIBRARY_PATH', '')
+        library_paths = os.environ.get('LD_LIBRARY_PATH', '').split(':')
+        library_paths += ['/lib64', '/usr/lib64', '/lib', '/usr/lib', '/lib32', '/usr/lib32']
+        for dependency in self.elf.dependencies:
+            library_paths.append(os.path.dirname(dependency.path))
         relative_library_paths = []
-        for directory in ld_library_path.split(':'):
+        for directory in library_paths:
             if not len(directory):
                 continue
 
@@ -568,7 +570,8 @@ class File(object):
 
             # Convert it into a path relative to the launcher/source.
             relative_library_path = os.path.relpath(directory, original_file_parent)
-            relative_library_paths.append(relative_library_path)
+            if relative_library_path not in relative_library_paths:
+                relative_library_paths.append(relative_library_path)
         library_path = ':'.join(relative_library_paths)
 
         # Determine whether this is a "full" linker (*e.g.* GNU linker).
