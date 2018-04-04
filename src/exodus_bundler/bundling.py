@@ -367,6 +367,7 @@ class Elf(object):
         environment = {}
         environment.update(os.environ)
         environment['LD_TRACE_LOADED_OBJECTS'] = '1'
+        extra_ldd_arguments = []
         if self.chroot:
             ld_library_path = '/lib64:/usr/lib64:/lib/:/usr/lib:/lib32/:/usr/lib32/:'
             ld_library_path += environment.get('LD_LIBRARY_PATH', '')
@@ -377,8 +378,10 @@ class Elf(object):
                 directories.append(directory)
             ld_library_path = ':'.join(directories)
             environment['LD_LIBRARY_PATH'] = ld_library_path
+            # We only need to avoid including system dependencies if there's a chroot set.
+            extra_ldd_arguments += ['--inhibit-cache', '--inhibit-rpath', '']
 
-        process = Popen(['ldd', '--inhibit-cache', '--inhibit-rpath', '', self.path],
+        process = Popen(['ldd'] + extra_ldd_arguments + [self.path],
                         executable=linker_path, stdout=PIPE, stderr=PIPE, env=environment)
         stdout, stderr = process.communicate()
         combined_output = stdout.decode('utf-8').split('\n') + stderr.decode('utf-8').split('\n')
