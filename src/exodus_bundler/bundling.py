@@ -686,7 +686,7 @@ class Bundle(object):
 
     Attributes:
         chroot (str): The root directory used when invoking the linker (or `None` for `/`).
-        files (:obj:`list` of :obj:`File`): The files to be included in the bundle.
+        files (:obj:`set` of :obj:`File`): The files to be included in the bundle.
         working_directory (str): The root directory where the bundles will be written and packaged.
     """
     def __init__(self, working_directory=None, chroot=None):
