@@ -687,6 +687,7 @@ class Bundle(object):
     Attributes:
         chroot (str): The root directory used when invoking the linker (or `None` for `/`).
         files (:obj:`set` of :obj:`File`): The files to be included in the bundle.
+        linker_files (:obj:`set` of :obj:`File`): A list of observed linker files.
         working_directory (str): The root directory where the bundles will be written and packaged.
     """
     def __init__(self, working_directory=None, chroot=None):
@@ -709,6 +710,7 @@ class Bundle(object):
             os.chmod(self.working_directory, 0o777 & ~umask)
         self.chroot = chroot
         self.files = set()
+        self.linker_files = set()
 
     def add_file(self, path, entry_point=None):
         """Adds an additional file to the bundle.
@@ -738,7 +740,22 @@ class Bundle(object):
 
         self.files.add(file)
         if file.elf:
-            self.files |= file.elf.dependencies
+            if file.elf.linker_file:
+                self.linker_files.add(file.elf.linker_file)
+                self.files |= file.elf.dependencies
+            else:
+                # Manually set the linker if there isn't one in the program header,
+                # and we've only seen one in all of the files that have been added.
+                if len(self.linker_files) == 1:
+                    [file.elf.linker_file] = self.linker_files
+                    self.files |= file.elf.dependencies
+                    # We definitely don't want a launcher for this file, so clear the linker.
+                    file.elf.linker_file = None
+                else:
+                    logger.warn((
+                        'An ELF binary without a suitable linker candidate was encountered. '
+                        'Either no linker was found or there are multiple conflicting linkers.'
+                    ))
 
         return file
 
