@@ -50,7 +50,9 @@ class PackageManager(object):
         if not self.cache_exists or not self.commands_exist:
             return None
         args = self.owner_command + [path]
-        process = subprocess.Popen(args, stdout=subprocess.PIPE)
+        env = os.environ.copy()
+        env['LC_ALL'] = 'C'
+        process = subprocess.Popen(args, stdout=subprocess.PIPE, env=env)
         stdout, stderr = process.communicate()
         output = stdout.decode('utf-8').strip()
         match = re.search(self.owner_regex, output)
