@@ -519,7 +519,7 @@ tox
 
 ## Contributing
 
-Contributions are welcome, but please follow these contributor guideline that are outlined in [CONTRIBUTING.md](CONTRIBUTING.md).
+Contributions are welcome, but please follow these contributor guidelines outlined in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 
 ## License
