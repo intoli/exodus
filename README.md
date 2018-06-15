@@ -497,7 +497,7 @@ The development environment can be setup by running the following.
 
 ```bash
 # Clone the repository.
-git clone git@github.com:intoli/exodus.git
+git clone https://github.com/intoli/exodus.git
 cd exodus
 
 # Create and enter a virtualenv.
