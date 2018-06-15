@@ -519,8 +519,7 @@ tox
 
 ## Contributing
 
-Contributions are welcome, but please create an issue on [the issue tracker](https://github.com/intoli/exodus/issues/new) first to discuss the contribution first.
-New feature additions should include tests and it's a requirement that all tests must pass before pull requests are merged.
+Contributions are welcome, but please follow these contributor guideline that are outlined in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 
 ## License
