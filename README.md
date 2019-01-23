@@ -473,7 +473,7 @@ Many of these are things that we're working on and hope to improve in the future
 Here you can see an overview of situations where exodus will not be able to successfully relocate executables.
 
 - **Non-ELF Binaries** - Exodus currently only supports completely bundling ELF binaries.
-    Interpreted executable files, like shell scripts, can be included in bundles, but they're shebang interpreter directives will not be changed.
+    Interpreted executable files, like shell scripts, can be included in bundles, but their shebang interpreter directives will not be changed.
     This generally means that they will be interpreted using the system version of `bash`, `python`, `perl`, or whatever else.
     The problem that exodus aims to solve is largely centered around the dynamic linking of ELF binaries, so this is unlikely to change in the foreseeable future.
 - **Incompatible CPU Architectures** - Binaries compiled for one CPU architecture will generally not be able to run on a CPU of another architecture.
