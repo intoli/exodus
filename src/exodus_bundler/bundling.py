@@ -224,7 +224,7 @@ def run_ldd(ldd, binary):
 
 
 class stored_property(object):
-    """Simple decoratator for a class property that will be cached indefinitely."""
+    """Simple decorator for a class property that will be cached indefinitely."""
     def __init__(self, function):
         self.__doc__ = getattr(function, '__doc__')
         self.function = function
