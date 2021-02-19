@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 
 from exodus_bundler.dependency_detection import detect_dependencies

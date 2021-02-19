@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 class FatalError(Exception):
     """Base class for exceptions that should terminate program execution."""
     pass

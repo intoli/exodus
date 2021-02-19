@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Methods to produce launchers that will invoke the relocated executables with
 the proper linker and library paths."""
 import os

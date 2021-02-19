@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 
 from exodus_bundler.input_parsing import extract_exec_path
