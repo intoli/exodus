@@ -1,7 +1,7 @@
 defaults: &defaults
   working_directory: ~/exodus
   docker:
-    - image: circleci/python:3.6.1
+    - image: circleci/python:3.9-buster
 
 
 version: 2
@@ -90,7 +90,7 @@ jobs:
             )
             sudo cp exodus.c /
             cd /
-            sudo musl-gcc -static -O3 exodus.c -o exodus
+            sudo gcc -O3 exodus.c -o exodus
             sudo chmod a+x /exodus
 
             sudo mv /etc/ld.so.cache /tmp/ld.so.cache.bck

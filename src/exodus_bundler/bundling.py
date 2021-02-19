@@ -124,7 +124,7 @@ def create_unpackaged_bundle(executables, rename=[], chroot=None, add=[], no_sym
                         ('Automatic dependency detection failed. Either "%s" ' % file.path) +
                         'is not tracked by your package manager, or your operating system '
                         'is not currently compatible with the `--detect` option. If not, please '
-                        'create an issue at https://github.com/intoli/exodus and we\'ll try our '
+                        "create an issue at https://github.com/intoli/exodus and we'll try our "
                         ' to add support for it in the future.',
                     )
 
@@ -169,12 +169,12 @@ def parse_dependencies_from_ldd_output(content):
     dependencies = []
     for line in content:
         # This first one is a special case of invoking the linker as `ldd`.
-        if re.search('^\s*(/.*?)\s*=>\s*ldd\s*\(', line):
+        if re.search(r'^\s*(/.*?)\s*=>\s*ldd\s*\(', line):
             # We'll exclude this because it's the hardcoded INTERP path, and it would be
             # impossible to get the full path from this command output.
             continue
-        match = re.search('=>\s*(/.*?)\s*\(', line)
-        match = match or re.search('\s*(/.*?)\s*\(', line)
+        match = re.search(r'=>\s*(/.*?)\s*\(', line)
+        match = match or re.search(r'\s*(/.*?)\s*\(', line)
         if match:
             dependencies.append(match.group(1))
 
@@ -591,7 +591,7 @@ class File(object):
                 f.write(launcher_content)
         except CompilerNotFoundError:
             if not shell_launcher:
-                logger.warn((
+                logger.warning((
                     'Installing either the musl or diet C libraries will result in more efficient '
                     'launchers (currently using bash fallbacks instead).'
                 ))
@@ -673,7 +673,7 @@ class File(object):
             return False
 
         # Most libraries will include `.so` in the filename.
-        return re.search('\.so(?:\.|$)', self.path)
+        return re.search(r'\.so(?:\.|$)', self.path)
 
     @stored_property
     def source(self):
@@ -731,7 +731,7 @@ class Bundle(object):
         try:
             file = self.file_factory(path, entry_point=entry_point, chroot=self.chroot)
         except UnexpectedDirectoryError:
-            assert entry_point is None, 'Directories can\'t have entry points.'
+            assert entry_point is None, "Directories can't have entry points."
             for root, directories, files in os.walk(path):
                 for file in files:
                     file_path = os.path.join(root, file)
@@ -752,7 +752,7 @@ class Bundle(object):
                     # We definitely don't want a launcher for this file, so clear the linker.
                     file.elf.linker_file = None
                 else:
-                    logger.warn((
+                    logger.warning((
                         'An ELF binary without a suitable linker candidate was encountered. '
                         'Either no linker was found or there are multiple conflicting linkers.'
                     ))
@@ -853,12 +853,12 @@ class Bundle(object):
         file = next((file for file in self.files if file.path == path), None)
         if file is not None:
             assert entry_point == file.entry_point or not entry_point or not file.entry_point, \
-                'The entry point property should always persist, but can\'t conflict.'
+                "The entry point property should always persist, but can't conflict."
             file.entry_point = file.entry_point or entry_point
             assert chroot == file.chroot, 'The chroot must match.'
             file.library = file.library or library
             assert not file.entry_point or not file.library, \
-                'A file can\'t be both an entry point and a library.'
+                "A file can't be both an entry point and a library."
             return file
 
         return File(path, entry_point, chroot, library, file_factory)

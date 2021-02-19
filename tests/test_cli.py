@@ -39,7 +39,7 @@ def test_adding_additional_files(capsys):
     args = ['--chroot', chroot, '--output', '-', '--tarball', fizz_buzz_glibc_32]
     stdin = '\n'.join((fizz_buzz_glibc_32_exe, fizz_buzz_glibc_64))
     returncode, stdout, stderr = run_exodus(args, universal_newlines=False, stdin=stdin)
-    assert returncode == 0, 'Exodus should have exited with a success status code, but didn\'t.'
+    assert returncode == 0, "Exodus should have exited with a success status code, but didn't."
     stream = io.BytesIO(stdout)
     with tarfile.open(fileobj=stream, mode='r:gz') as f:
         names = f.getnames()
@@ -61,7 +61,7 @@ def test_logging_outputs(capsys):
     # The different levels should be routed separately to stdout/stderr.
     configure_logging(verbose=True, quiet=False)
     logger.debug('debug')
-    logger.warn('warn')
+    logger.warning('warn')
     logger.info('info')
     logger.error('error')
     out, err = capsys.readouterr()
@@ -107,7 +107,7 @@ def test_writing_bundle_to_disk():
     args = ['--chroot', chroot, '--output', filename, fizz_buzz_glibc_32]
     try:
         returncode, stdout, stderr = run_exodus(args)
-        assert returncode == 0, 'Exodus should have exited with a success status code, but didn\'t.'
+        assert returncode == 0, "Exodus should have exited with a success status code, but didn't."
         with open(filename, 'rb') as f_in:
             first_line = f_in.readline().strip()
         assert first_line == b'#! /bin/bash', stderr
@@ -119,7 +119,7 @@ def test_writing_bundle_to_disk():
 def test_writing_bundle_to_stdout():
     args = ['--chroot', chroot, '--output', '-', fizz_buzz_glibc_32]
     returncode, stdout, stderr = run_exodus(args)
-    assert returncode == 0, 'Exodus should have exited with a success status code, but didn\'t.'
+    assert returncode == 0, "Exodus should have exited with a success status code, but didn't."
     assert stdout.startswith('#! /bin/sh'), stderr
 
 
@@ -129,7 +129,7 @@ def test_writing_tarball_to_disk():
     args = ['--chroot', chroot, '--output', filename, '--tarball', fizz_buzz_glibc_32]
     try:
         returncode, stdout, stderr = run_exodus(args)
-        assert returncode == 0, 'Exodus should have exited with a success status code, but didn\'t.'
+        assert returncode == 0, "Exodus should have exited with a success status code, but didn't."
         assert tarfile.is_tarfile(filename), stderr
         with tarfile.open(filename, mode='r:gz') as f_in:
             assert 'exodus/bin/fizz-buzz-glibc-32' in f_in.getnames()
@@ -141,7 +141,7 @@ def test_writing_tarball_to_disk():
 def test_writing_tarball_to_stdout():
     args = ['--chroot', chroot, '--output', '-', '--tarball', fizz_buzz_glibc_32]
     returncode, stdout, stderr = run_exodus(args, universal_newlines=False)
-    assert returncode == 0, 'Exodus should have exited with a success status code, but didn\'t.'
+    assert returncode == 0, "Exodus should have exited with a success status code, but didn't."
     stream = io.BytesIO(stdout)
     with tarfile.open(fileobj=stream, mode='r:gz') as f:
         assert 'exodus/bin/fizz-buzz-glibc-32' in f.getnames(), stderr
