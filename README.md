@@ -18,7 +18,7 @@
         <img src="https://img.shields.io/circleci/project/github/intoli/exodus/master.svg"
             alt="Build Status"></a>
     <a href="https://circleci.intoli.com/artifacts/intoli/exodus/coverage-report/index.html">
-        <img src="https://img.shields.io/badge/dynamic/json.svg?label=coverage&colorB=ff69b4&prefix=&suffix=&query=$.coverage&uri=https://circleci.intoli.com/artifacts/intoli/exodus/coverage-report/total-coverage.json"
+        <img src="https://img.shields.io/badge/dynamic/json.svg?label=coverage&colorB=ff69b4&query=$.coverage&uri=https://circleci.intoli.com/artifacts/intoli/exodus/coverage-report/total-coverage.json"
           alt="Coverage"></a>
     <a href="https://github.com/intoli/exodus/blob/master/LICENSE.md">
         <img src="https://img.shields.io/pypi/l/exodus-bundler.svg"
