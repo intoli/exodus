@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Contains a couple of fairly trivial templating methods used for constructing
 the loaders and the output filename. Any instances of {{variable_name}} will be
 replaced by the corresponding values."""
