@@ -5,6 +5,7 @@ graft .circleci
 graft .github
 
 include .bumpversion.cfg
+include .clabot
 include .coveragerc
 include conftest.py
 include development-requirements.txt
