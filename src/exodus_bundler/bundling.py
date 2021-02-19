@@ -591,7 +591,7 @@ class File(object):
                 f.write(launcher_content)
         except CompilerNotFoundError:
             if not shell_launcher:
-                logger.warn((
+                logger.warning((
                     'Installing either the musl or diet C libraries will result in more efficient '
                     'launchers (currently using bash fallbacks instead).'
                 ))
@@ -752,7 +752,7 @@ class Bundle(object):
                     # We definitely don't want a launcher for this file, so clear the linker.
                     file.elf.linker_file = None
                 else:
-                    logger.warn((
+                    logger.warning((
                         'An ELF binary without a suitable linker candidate was encountered. '
                         'Either no linker was found or there are multiple conflicting linkers.'
                     ))

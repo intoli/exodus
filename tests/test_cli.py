@@ -61,7 +61,7 @@ def test_logging_outputs(capsys):
     # The different levels should be routed separately to stdout/stderr.
     configure_logging(verbose=True, quiet=False)
     logger.debug('debug')
-    logger.warn('warn')
+    logger.warning('warn')
     logger.info('info')
     logger.error('error')
     out, err = capsys.readouterr()
