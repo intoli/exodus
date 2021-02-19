@@ -103,7 +103,7 @@ def extract_paths(content, existing_only=True):
 
 def strip_pid_prefix(line):
     """Strips out the `[pid XXX] ` prefix if present."""
-    match = re.match('\[pid\s+\d+\]\s*', line)
+    match = re.match(r'\[pid\s+\d+\]\s*', line)
     if match:
         return line[len(match.group()):]
     return line

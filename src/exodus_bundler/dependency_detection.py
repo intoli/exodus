@@ -82,17 +82,17 @@ class Apt(PackageManager):
 class Pacman(PackageManager):
     cache_directory = '/var/cache/pacman'
     list_command = ['pacman', '-Ql']
-    list_regex = '.*\s+(\/.+)'
+    list_regex = r'.*\s+(\/.+)'
     owner_command = ['pacman', '-Qo']
-    owner_regex = ' is owned by (.*)\s+.*'
+    owner_regex = r' is owned by (.*)\s+.*'
 
 
 class Yum(PackageManager):
     cache_directory = '/var/cache/yum'
     list_command = ['rpm', '-ql']
-    list_regex = '(.+)'
+    list_regex = r'(.+)'
     owner_command = ['rpm', '-qf']
-    owner_regex = '(.+)'
+    owner_regex = r'(.+)'
 
 
 package_managers = [

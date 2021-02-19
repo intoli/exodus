@@ -169,12 +169,12 @@ def parse_dependencies_from_ldd_output(content):
     dependencies = []
     for line in content:
         # This first one is a special case of invoking the linker as `ldd`.
-        if re.search('^\s*(/.*?)\s*=>\s*ldd\s*\(', line):
+        if re.search(r'^\s*(/.*?)\s*=>\s*ldd\s*\(', line):
             # We'll exclude this because it's the hardcoded INTERP path, and it would be
             # impossible to get the full path from this command output.
             continue
-        match = re.search('=>\s*(/.*?)\s*\(', line)
-        match = match or re.search('\s*(/.*?)\s*\(', line)
+        match = re.search(r'=>\s*(/.*?)\s*\(', line)
+        match = match or re.search(r'\s*(/.*?)\s*\(', line)
         if match:
             dependencies.append(match.group(1))
 
@@ -673,7 +673,7 @@ class File(object):
             return False
 
         # Most libraries will include `.so` in the filename.
-        return re.search('\.so(?:\.|$)', self.path)
+        return re.search(r'\.so(?:\.|$)', self.path)
 
     @stored_property
     def source(self):
