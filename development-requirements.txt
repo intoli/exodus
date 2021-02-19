@@ -1,5 +1,5 @@
 bumpversion==0.5.3
-coverage==4.4.2
+coverage>=5.4
 m2r>=0.1.12
 pluggy==0.5.2
 py==1.4.34
