@@ -124,7 +124,7 @@ def create_unpackaged_bundle(executables, rename=[], chroot=None, add=[], no_sym
                         ('Automatic dependency detection failed. Either "%s" ' % file.path) +
                         'is not tracked by your package manager, or your operating system '
                         'is not currently compatible with the `--detect` option. If not, please '
-                        'create an issue at https://github.com/intoli/exodus and we\'ll try our '
+                        "create an issue at https://github.com/intoli/exodus and we'll try our "
                         ' to add support for it in the future.',
                     )
 
@@ -731,7 +731,7 @@ class Bundle(object):
         try:
             file = self.file_factory(path, entry_point=entry_point, chroot=self.chroot)
         except UnexpectedDirectoryError:
-            assert entry_point is None, 'Directories can\'t have entry points.'
+            assert entry_point is None, "Directories can't have entry points."
             for root, directories, files in os.walk(path):
                 for file in files:
                     file_path = os.path.join(root, file)
@@ -853,12 +853,12 @@ class Bundle(object):
         file = next((file for file in self.files if file.path == path), None)
         if file is not None:
             assert entry_point == file.entry_point or not entry_point or not file.entry_point, \
-                'The entry point property should always persist, but can\'t conflict.'
+                "The entry point property should always persist, but can't conflict."
             file.entry_point = file.entry_point or entry_point
             assert chroot == file.chroot, 'The chroot must match.'
             file.library = file.library or library
             assert not file.entry_point or not file.library, \
-                'A file can\'t be both an entry point and a library.'
+                "A file can't be both an entry point and a library."
             return file
 
         return File(path, entry_point, chroot, library, file_factory)
