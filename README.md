@@ -147,7 +147,7 @@ optional arguments:
   -c CHROOT_PATH, --chroot CHROOT_PATH
                         A directory that will be treated as the root during
                         linking. Useful for testing and bundling extracted
-                        packages that won run without a chroot. (default:
+                        packages that won't run without a chroot. (default:
                         None)
   -a DEPENDENCY, --add DEPENDENCY, --additional-file DEPENDENCY
                         Specifies an additional file to include in the bundle,
