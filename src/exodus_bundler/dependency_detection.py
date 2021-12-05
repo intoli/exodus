@@ -95,11 +95,18 @@ class Yum(PackageManager):
     owner_command = ['rpm', '-qf']
     owner_regex = r'(.+)'
 
+class Zypper(PackageManager):
+    cache_directory = '/var/cache/zypp'
+    list_command = ['rpm', '-ql']
+    list_regex = r'(.+)'
+    owner_command = ['rpm', '-qa']
+    owner_regex = r'(.+)'
 
 package_managers = [
     Apt(),
     Pacman(),
     Yum(),
+    Zypper(),
 ]
 
 
