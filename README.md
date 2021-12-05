@@ -489,6 +489,8 @@ Here you can see an overview of situations where exodus will not be able to succ
     This means that any libraries which are compiled for specific hardware drivers will only work on machines with the same drivers.
     A key example of this is the `libGLX_indirect.so` library which can link to either `libGLX_mesa.so` or `libGLX_nvidia.so` depending on which graphics card drivers are used on a given system.
     Bundling dependencies that are not locally available on the source machine is fundamentally outside the scope of what exodus is designed to do, and this will never change.
+- **Programs relying on /proc/self/exe** - Since we execute [ld-linux](https://linux.die.net/man/8/ld-linux) instead of of the actual application image, 
+    `/proc/self/exe` will point to the link-loader instead of the actual program. This can break some multi-call binaries relying on this information.
 
 
 ## Development
