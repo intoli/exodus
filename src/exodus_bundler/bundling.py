@@ -513,7 +513,7 @@ class File(object):
         if not os.path.exists(bin_directory):
             os.makedirs(bin_directory)
         entry_point_path = os.path.join(bin_directory, self.entry_point)
-        relative_destination_path = os.path.relpath(source_path, bin_directory)
+        relative_destination_path = os.path.relpath(source_path, bin_directory)+".sh"
         os.symlink(relative_destination_path, entry_point_path)
 
     def create_launcher(self, working_directory, bundle_root, linker_basename, symlink_basename,
@@ -599,9 +599,10 @@ class File(object):
             launcher_content = construct_bash_launcher(
                 linker=linker, library_path=library_path, executable=executable,
                 full_linker=full_linker)
-            with open(source_path, 'w') as f:
+            tt=source_path+".sh"
+            with open(tt, 'w') as f:
                 f.write(launcher_content)
-        shutil.copymode(self.path, source_path)
+        shutil.copymode(self.path, tt)
 
         return os.path.normpath(os.path.abspath(source_path))
 
@@ -781,6 +782,7 @@ class Bundle(object):
             if file.no_symlink:
                 # We'll need to copy the actual file into the bundle subdirectory in this
                 # case so that it can locate resources using paths relative to the executable.
+
                 parent_directory = os.path.dirname(file_path)
                 if not os.path.exists(parent_directory):
                     os.makedirs(parent_directory)
@@ -819,14 +821,15 @@ class Bundle(object):
                 # We'll again attempt to find a unique available name, this time for the symlink
                 # to the executable.
                 file_basename = file.entry_point or os.path.basename(file.path)
-                desired_symlink_path = os.path.join(directory, '%s-x' % file_basename)
+                #desired_symlink_path = os.path.join(directory, '%s-x' % file_basename)
+                desired_symlink_path = os.path.join(directory, '%s' % file_basename)
                 symlink_path = desired_symlink_path
-                iteration = 2
-                while symlink_path in file_paths:
-                    symlink_path = '%s-%d' % (desired_symlink_path, iteration)
-                    iteration += 1
+                # iteration = 2
+                # while symlink_path in file_paths:
+                #     symlink_path = '%s-%d' % (desired_symlink_path, iteration)
+                #     iteration += 1
                 file_paths.add(symlink_path)
-                symlink_basename = os.path.basename(symlink_path)
+                symlink_basename = os.path.basename(symlink_path);
                 file.create_launcher(self.working_directory, self.bundle_root,
                                      linker_basename, symlink_basename,
                                      shell_launcher=shell_launchers)
